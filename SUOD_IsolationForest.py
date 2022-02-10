@@ -18,7 +18,7 @@ records_file_complete = r"/home/jambrown/CP_ML_Experiments/OneDay_Satellite/Reco
 
 # Changes with every model?
 model_folder_name = 'SUOD_IsolationForest_PyOD/V1'
-train_size = 0.001 # TODO change this split to 0.6 after testing
+train_size = 0.6 # TODO change this split to 0.6 after testing
 # Model parameters
 contamination = 0.03164651 # approximately 3.164651% of all samples are anomalies in this dataset TODO this needs to be changed for every dataset
 max_features_list = np.linspace(1, 60, 10, dtype=int) # TODO make this higher?
@@ -37,7 +37,6 @@ for i in range(0, len(max_features_list)):
                           max_features=max_features_list[i],
                           n_estimators=n_estimators_list[j],
                           bootstrap=bootstrap,
-                          n_jobs=n_jobs,
                           random_state=random_state,
                           verbose=verbose)
 
@@ -72,14 +71,15 @@ print("Split complete")
 
 #  Train the model
 
-suod.fit(X_train, anomaly_train)
+suod.fit(X_train)
 
 print("Training Complete")
 
 # Save the model
 
-with open(output_path_model_base + ".joblib", "wb") as file:
-     dump(suod, file)
+# Make joblib for other model types
+with open(output_path_model_base + ".txt", "wb") as file:
+     pickle.dump(suod, file)
 
 print("Saving Complete")
 
