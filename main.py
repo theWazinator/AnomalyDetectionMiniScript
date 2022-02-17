@@ -43,6 +43,8 @@ list_of_zipped_cp_files.sort(reverse=True) # Ensures most recent scans are proce
 
 list_of_zipped_cp_files = list_of_zipped_cp_files[:1] # TODO remove this line
 
+print("Begin creating raw dataframes from JSON file.", flush=True)
+
 for zipped_cp_file in list_of_zipped_cp_files:
 
     cp_scan_only_name = zipped_cp_file.split('.')[0]
@@ -119,7 +121,7 @@ for zipped_cp_file in list_of_zipped_cp_files:
 print("Finished creating raw dataframes.", flush=True)
 
 # Merge raw files into singular file for use
-print("Begin merging raw files", flush=True)
+print("Begin merging raw dataframes into a singular dataframe.", flush=True)
 
 for cur_country_name in countries_to_select:
 
@@ -281,30 +283,35 @@ for cur_country_name in countries_to_select:
         'test_response_0_asnum_match',
         'test_response_0_asname_match',
         'test_response_0_match_percentage',
+        'test_response_0_asnum',
         'test_response_1_IP_match',
         'test_response_1_http_match',
         'test_response_1_cert_match',
         'test_response_1_asnum_match',
         'test_response_1_asname_match',
         'test_response_1_match_percentage',
+        'test_response_1_asnum',
         'test_response_2_IP_match',
         'test_response_2_http_match',
         'test_response_2_cert_match',
         'test_response_2_asnum_match',
         'test_response_2_asname_match',
         'test_response_2_match_percentage',
+        'test_response_2_asnum',
         'test_response_3_IP_match',
         'test_response_3_http_match',
         'test_response_3_cert_match',
         'test_response_3_asnum_match',
         'test_response_3_asname_match',
         'test_response_3_match_percentage',
+        'test_response_3_asnum',
         'test_response_4_IP_match',
         'test_response_4_http_match',
         'test_response_4_cert_match',
         'test_response_4_asnum_match',
         'test_response_4_asname_match',
         'test_response_4_match_percentage',
+        'test_response_4_asnum',
     ]
 
     # Open records file, keeping only columns we need
@@ -433,30 +440,35 @@ for cur_country_name in countries_to_select:
         'test_response_0_cert_match',
         'test_response_0_asnum_match',
         'test_response_0_asname_match',
+        'test_response_0_asnum',
         'include_IP_0',
         'test_response_1_IP_match',
         'test_response_1_http_match',
         'test_response_1_cert_match',
         'test_response_1_asnum_match',
         'test_response_1_asname_match',
+        'test_response_1_asnum',
         'include_IP_1',
         'test_response_2_IP_match',
         'test_response_2_http_match',
         'test_response_2_cert_match',
         'test_response_2_asnum_match',
         'test_response_2_asname_match',
+        'test_response_2_asnum',
         'include_IP_2',
         'test_response_3_IP_match',
         'test_response_3_http_match',
         'test_response_3_cert_match',
         'test_response_3_asnum_match',
         'test_response_3_asname_match',
+        'test_response_3_asnum',
         'include_IP_3',
         'test_response_4_IP_match',
         'test_response_4_http_match',
         'test_response_4_cert_match',
         'test_response_4_asnum_match',
         'test_response_4_asname_match',
+        'test_response_4_asnum',
         'include_IP_4',
     ]
 
