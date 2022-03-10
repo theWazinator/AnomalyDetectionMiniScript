@@ -8,7 +8,7 @@
 #    b. a folder holding unmodified dataframes (compressed) extracted from results.json
 #    c. a folder for temporarily holding the unzipped tar file and segmented JSON files. This folder is deleted after the raw dataframes have been compiled.
 # 2. Folder holding a singular dataframe of all probes across all scans that employ the selected vantage points, one for each country
-# 3. Folder containing subfolders coressponding to each country
+# 3. Folder containing subfolders corresponding to each country
 #    a. ML-ready dataframes (compressed) derived from the unmodified dataframes, one for each country (all scans combined in one file)
 #    b. Anomaly Vector for that country's ML dataframe
 #    c. Standard Scaler for that country's ML dataframe
@@ -116,7 +116,7 @@ for zipped_cp_file in list_of_zipped_cp_files:
         print("Finished file " +str(fileNumber) +" of " +str(splitfile_count), flush=True)
 
     # Delete temp folder
-    os.rmdir(temp_file_name)
+    shutil.rmtree(temp_file_name)
 
 print("Finished creating raw dataframes.", flush=True)
 
