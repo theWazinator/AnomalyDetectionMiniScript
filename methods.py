@@ -49,7 +49,15 @@ def format_censoredplanet_datetime(old_string):
 
     stringlist = re.split(pattern='(\.[0-9]*)', string=old_string, maxsplit=1) # Remove the nanoseconds
 
-    new_string = stringlist[0] + stringlist[1]
+    if len(stringlist) < 2: # Corner case if timestamp is exactly x seconds (no nanoseconds)
+
+        stringlist = re.split(pattern='(\s-\d\d\d\d)', string=old_string, maxsplit=1) # Remove the nanoseconds
+
+        new_string = stringlist[0] + ".000000001"
+
+    else:
+
+        new_string = stringlist[0] + stringlist[1]
 
     converted_datetime = pd.to_datetime(arg=new_string, format='%Y-%m-%d %H:%M:%S.%f')
 
