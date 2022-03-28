@@ -20,7 +20,9 @@ countries_to_select = ["United States", "China", "India", "Russia", "Turkey", "I
 list_of_zipped_cp_files = os.listdir(cp_downloads_zipped_file_name)
 list_of_zipped_cp_files.sort(reverse=True) # Ensures most recent scans are processed first
 
-print('begin')
+# TODO add parallel lis counting how many times each appears
+
+VP_dict = {}
 
 for zipped_cp_file in list_of_zipped_cp_files:
 
@@ -28,7 +30,50 @@ for zipped_cp_file in list_of_zipped_cp_files:
 
     resolvers_filename = r'/home/jambrown/CP_Analysis/' +cp_scan_only_name+  r'/other_docs/resolvers.json'
 
+    reader = open(resolvers_filename, 'r')
 
+    try:
 
+        for line in reader:
+            data = json.loads(line)  # Convert json to dictionary
+
+            if data['location']['country_name'] in countries_to_select:
+
+                if data['vp'] not in VP_dict.keys():
+
+                    VP_dict[data['vp']] = 1
+
+                else:
+
+                    VP_dict[data['vp']] = VP_dict[data['vp']] + 1
+
+    finally:
+        reader.close()
+
+VP_list = []
+VP_count = []
+
+# Print to file
+
+print('begin')
+
+for key in VP_dict.keys():
+
+    print(key)
+
+    VP_list.append(key)
+    VP_count.append(VP_dict[key])
 
 print('end')
+
+# Save to CSV file
+
+VP_count_dict = {
+
+    "Vantage Point": VP_list,
+    "Count": VP_count,
+}
+
+df = pd.DataFrame(VP_count_dict)
+
+df.to_csv("VantagePoint_Count.csv")

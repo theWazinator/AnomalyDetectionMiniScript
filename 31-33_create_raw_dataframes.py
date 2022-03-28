@@ -41,7 +41,7 @@ max_vantagepoint_count_per_country = 15
 list_of_zipped_cp_files = os.listdir(cp_downloads_zipped_file_name)
 list_of_zipped_cp_files.sort(reverse=True) # Ensures most recent scans are processed first
 
-list_of_zipped_cp_files = list_of_zipped_cp_files[29:34] # TODO change this line if you don't want to use all the dataframes
+list_of_zipped_cp_files = list_of_zipped_cp_files[31:34] # TODO change this line if you don't want to use all the dataframes
 
 print("Begin creating raw dataframes from JSON file.", flush=True)
 
