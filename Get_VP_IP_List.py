@@ -15,7 +15,7 @@ import tarfile
 cp_downloads_zipped_file_name = r"/home/jambrown/CP_Downloads/"
 home_file_name = r"/home/jambrown/CP_Analysis/"
 
-countries_to_select = ["United States", "China", "India", "Russia", "Turkey", "Iran"]
+countries_to_select = ["United States", "China", "India", "Russia", "Turkey", "Iran", "Turkmenistan"]
 
 list_of_zipped_cp_files = os.listdir(cp_downloads_zipped_file_name)
 list_of_zipped_cp_files.sort(reverse=True) # Ensures most recent scans are processed first
