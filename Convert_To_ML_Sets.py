@@ -4,7 +4,6 @@
  One copy has both the unclean and clean (presumed uncensored) data, and the other only the clean data
  """
 
-import pandas as pd
 import os
 from Convert_To_ML_Helper_Methods import *
 from add_GFWatch_column import run_add_GFWatch_column
@@ -14,8 +13,6 @@ from add_GFWatch_column import run_add_GFWatch_column
 def remove_invalid_records(df):
 
     valid_df = df[(df.in_control_group == True) & (df.control_response_start_success == True) & (df.excluded_below_threshold == False)]
-
-    # TODO create copy of the table
 
     return valid_df.copy()
 
@@ -32,8 +29,6 @@ def get_ASN_list(input_df, row):
     return asn_list
 
 def remove_unclean_records (input_df, AS_count_df):
-
-    # TODO complete this function
 
     # Convert AS_count_df into dictionary
 
@@ -76,13 +71,13 @@ def remove_unclean_records (input_df, AS_count_df):
         if domain in domain_datetime_clean_dict.keys() and datetime in domain_datetime_clean_dict[domain].keys():
 
             # Check ASN list quality control
-            if domain_datetime_clean_dict[domain][datetime] == "Clean":
+            if domain_datetime_clean_dict[domain][datetime] == "CLEAN":
 
                 if control_response_end_success == True and anomaly == False and connect_error == False and test_query_successful == True:
 
                     if domain_datetime_asn_dict[domain][datetime] in asn_list:
 
-                        remove_index = False
+                        remove_index = False # If there is a problem here, it is probably because the asn column is not recognized as numerical by Pandas
 
         if remove_index == True:
 
@@ -95,7 +90,7 @@ def remove_unclean_records (input_df, AS_count_df):
 # Create the training data from the original dataframe
 def create_ML_ready_data(df, AS_count_df, clean_only, index_list, save_filename, data_type):
 
-    df = df[index_list[0], index_list[1]].copy() # Select only the rows we want
+    df = df.iloc[index_list[0]: index_list[1]].copy() # Select only the rows we want
 
     total_records_count = df.shape[0]
 

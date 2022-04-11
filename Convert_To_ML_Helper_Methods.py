@@ -160,8 +160,6 @@ def create_ML_features(df):
         'passed_liveness',
         'connect_error',
         'in_control_group',
-        'excluded',
-        'excluded_is_CDN',
         'excluded_below_threshold',
         'control_response_start_success',
         'control_response_end_success',
