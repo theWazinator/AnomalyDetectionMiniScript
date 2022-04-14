@@ -22,7 +22,7 @@ def get_ASN_list(input_df, row):
 
     asn_list = []
 
-    for index in range(0, IP_count):
+    for index in range(0, max(IP_count, 5)): # A maximum of five responses are stored
 
         asn_list.append(input_df['test_response_' +str(index)+ '_asnum'].iloc[row])
 
@@ -181,6 +181,8 @@ else:
 
     original_with_newColumn_df = valid_df  # change the reference and don't add the new column
 
+print("Saving truth column complete!")
+
 original_with_newColumn_df = original_with_newColumn_df.sample(frac=1) # Shuffle the dataframe - this is the last time this is done in the pipeline
 
 # TODO uncomment this section
@@ -231,6 +233,5 @@ total_records_count, records_removed_count \
 
 print("Testing data (mixed) total probes: " +str(total_records_count))
 print("Testing data (mixed) probes removed: " +str(records_removed_count))
-
 
 
