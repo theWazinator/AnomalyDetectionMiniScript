@@ -86,9 +86,13 @@ def dict_to_key_value_list(old_dt):
 
 def save_to_gzip_and_print_report():
 
-def run_ml_model(training_set_df, validation_set_df, validation_truth_list, model_params, model_set):
+# This section should access the saved model in order to be compatible for using the test set
+def get_results(trial_set_df, trial_truth_list, model, model_params, model_library, save_folder_name)
 
+def run_ml_model(training_set_df, validation_set_df, validation_truth_list, model_params, model_library):
 
+# TODO remember that validation_truth_list is written with 1 for outliers and 0 for inliers - this is the format for PyOd
+# TODO in sci-kit learn, the values are 1 for inliers and -1 for outliers
 
 # TODO include timing of ML-training and all other variables in spreadsheet
 

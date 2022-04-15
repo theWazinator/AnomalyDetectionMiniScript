@@ -128,5 +128,4 @@ def main():
     os.system('chown :cdac {}'.format(_file.replace('/results.json', '/domain_IPs.csv')))
     print('Done exporting {} domains in {}s'.format(len(DOMAIN_IPs), time.time() - t0))
 
-
 main()
