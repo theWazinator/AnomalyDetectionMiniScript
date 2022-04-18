@@ -88,15 +88,11 @@ def remove_unclean_records (input_df, AS_count_df):
     return clean_df
 
 # Create the training data from the original dataframe
-def create_ML_ready_data(df, AS_count_df, clean_only, index_list, save_filename, data_type):
+def create_ML_ready_data(df, AS_count_df, clean_only, save_filename):
 
     df = df.copy()
-
-    df = df.iloc[index_list[0]: index_list[1]] # Select only the rows we want
 
     df = df.reset_index(drop=True)  # Reset the index from 0 to length-1
-
-    df = df.copy()
 
     total_records_count = df.shape[0]
 
@@ -114,24 +110,52 @@ def create_ML_ready_data(df, AS_count_df, clean_only, index_list, save_filename,
 
         clean_moniker = "Clean"
 
-    records_removed_count = total_records_count - df.shape[0]
+    row_count = df.shape[0]
+    records_removed_count = total_records_count - row_count
 
-    df['anomaly'].astype(int).to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_anomaly.csv", \
+    training_index_list = (0, int(row_count * training_split_fraction))
+    validation_index_list = (int(row_count * training_split_fraction) + 1,
+                             int(row_count * (training_split_fraction + validation_split_fraction)))
+    testing_index_list = (int(row_count * (training_split_fraction + validation_split_fraction)) + 1, row_count)
+
+    index_dict = {"TRAINING": training_index_list,
+                  "VALIDATION": validation_index_list,
+                  "TESTING": testing_index_list}
+
+    for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
+
+        index_list = index_dict[data_type]
+
+        subset_df = df.iloc[index_list[0]: index_list[1]] # Select only the rows we want
+
+        print(data_type+ " data has length " +str(subset_df.shape[0]))
+
+        subset_df['anomaly'].astype(int).to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_anomaly.csv", \
              index=False) # Converts True and False to 1 and 0
+
+        if country_code == 'CN':
+
+            subset_df['GFWatch_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_GFWatch_Censored.csv", \
+                    index=False)
+
+        elif country_code == "US":
+
+            subset_df['Presumed_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_Presumed_Censored.csv", \
+                index=False)
+
+        else:
+
+            pass # No presumption of censorship for other countries
+
+    # Drop the columns
 
     df.drop(['anomaly'], axis=1)
 
     if country_code == 'CN':
 
-        df['GFWatch_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_GFWatch_Censored.csv", \
-                index=False)
-
         df.drop(['GFWatch_Censored'], axis=1)
 
     elif country_code == "US":
-
-        df['Presumed_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_Presumed_Censored.csv", \
-                index=False)
 
         df.drop(['Presumed_Censored'], axis=1)
 
@@ -143,18 +167,19 @@ def create_ML_ready_data(df, AS_count_df, clean_only, index_list, save_filename,
 
     df = df.copy()
 
-    # TODO bizarre copying error I don't understand requires dataset to be reloaded
-    # df.to_parquet(index=True, compression="gzip", engine='pyarrow',
-    #               path=save_filename + data_type + "_" + clean_moniker + "_descriptiveFeatures_tmp.gzip")
-    #
-    # new_df = pd.read_parquet(engine='pyarrow', path=save_filename + data_type + "_" + clean_moniker + "_descriptiveFeatures_tmp.gzip")
-    #
-    # # remove the temporary file
-    # os.remove(save_filename + data_type + "_" + clean_moniker + "_descriptiveFeatures_tmp.gzip")
+    ml_ready_df = create_ML_features(df)
 
-    df = create_ML_features(df)
+    for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
 
-    df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=save_filename+data_type+ "_" +clean_moniker+ "_descriptiveFeatures_fullDataset.gzip")
+        index_list = index_dict[data_type]
+
+        subset_df = ml_ready_df.iloc[index_list[0]: index_list[1]] # Select only the rows we want
+
+        print(data_type+ " data has length " +str(subset_df.shape[0]))
+
+        subset_df = subset_df.reset_index(drop=True)  # Reset the index from 0 to length-1
+
+        subset_df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=save_filename+data_type+ "_" +clean_moniker+ "_descriptiveFeatures_fullDataset.gzip")
 
     return total_records_count, records_removed_count
 
@@ -207,60 +232,71 @@ print("Saving truth column complete!", flush=True)
 row_count = original_with_newColumn_df.shape[0]
 
 # Calculate indices for dividing data into unique training, validation, and testing components
-training_index_list = (0, int(row_count*training_split_fraction))
-validation_index_list = (int(row_count*training_split_fraction)+1, int(row_count*(training_split_fraction+validation_split_fraction)))
-testing_index_list = (int(row_count*(training_split_fraction+validation_split_fraction))+1, row_count)
 
 original_with_newColumn_df = original_with_newColumn_df.sample(frac=1, ignore_index=True) # Shuffle the dataframe - this is the last time this is done in the pipeline
 
 original_with_newColumn_df = original_with_newColumn_df.reset_index(drop=True) # Reset the index from 0 to n-1
 
-# Create clean training dataset
+# Create clean datasets
 total_records_count, records_removed_count \
-    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=True,
-                           index_list=training_index_list, save_filename=ml_ready_data_file_name, data_type="TRAINING")
+    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=True, save_filename=ml_ready_data_file_name)
 
-print("Training data (clean) total probes: " +str(total_records_count), flush=True)
-print("Training data (clean) probes removed: " +str(records_removed_count), flush=True)
+print("Data (clean) total probes: " +str(total_records_count), flush=True)
+print("Data (clean) probes removed: " +str(records_removed_count), flush=True)
 
-# Create mixed training set
+# Create mixed datasets
 total_records_count, records_removed_count \
-    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=False,
-                           index_list=training_index_list, save_filename=ml_ready_data_file_name, data_type="TRAINING")
+    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=False, save_filename=ml_ready_data_file_name)
 
-print("Training data (mixed) total probes: " +str(total_records_count), flush=True)
-print("Training data (mixed) probes removed: " +str(records_removed_count), flush=True)
+print("Data (mixed) total probes: " +str(total_records_count), flush=True)
+print("Data (mixed) probes removed: " +str(records_removed_count), flush=True)
 
-# Create clean validation dataset
-total_records_count, records_removed_count \
-    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=True,
-                           index_list=validation_index_list, save_filename=ml_ready_data_file_name, data_type="VALIDATION")
+# # Create clean training dataset
+# total_records_count, records_removed_count \
+#     = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=True,
+#                            index_list=training_index_list, save_filename=ml_ready_data_file_name, data_type="TRAINING")
+#
+# print("Training data (clean) total probes: " +str(total_records_count), flush=True)
+# print("Training data (clean) probes removed: " +str(records_removed_count), flush=True)
+#
+# # Create mixed training set
+# total_records_count, records_removed_count \
+#     = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=False,
+#                            index_list=training_index_list, save_filename=ml_ready_data_file_name, data_type="TRAINING")
+#
+# print("Training data (mixed) total probes: " +str(total_records_count), flush=True)
+# print("Training data (mixed) probes removed: " +str(records_removed_count), flush=True)
 
-print("Validation data (clean) total probes: " +str(total_records_count), flush=True)
-print("Validation data (clean) probes removed: " +str(records_removed_count), flush=True)
-
-# Create mixed validation set
-total_records_count, records_removed_count \
-    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=False,
-                           index_list=validation_index_list, save_filename=ml_ready_data_file_name, data_type="VALIDATION")
-
-print("Validation data (mixed) total probes: " +str(total_records_count), flush=True)
-print("Validation data (mixed) probes removed: " +str(records_removed_count), flush=True)
-
-# Create clean testing dataset
-total_records_count, records_removed_count \
-    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=True,
-                           index_list=testing_index_list, save_filename=ml_ready_data_file_name, data_type="TESTING")
-
-print("Testing data (clean) total probes: " +str(total_records_count), flush=True)
-print("Testing data (clean) probes removed: " +str(records_removed_count), flush=True)
-
-# Create mixed testing set
-total_records_count, records_removed_count \
-    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=False,
-                           index_list=testing_index_list, save_filename=ml_ready_data_file_name, data_type="TESTING")
-
-print("Testing data (mixed) total probes: " +str(total_records_count), flush=True)
-print("Testing data (mixed) probes removed: " +str(records_removed_count), flush=True)
+# # Create clean validation dataset
+# total_records_count, records_removed_count \
+#     = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=True,
+#                            index_list=validation_index_list, save_filename=ml_ready_data_file_name, data_type="VALIDATION")
+#
+# print("Validation data (clean) total probes: " +str(total_records_count), flush=True)
+# print("Validation data (clean) probes removed: " +str(records_removed_count), flush=True)
+#
+# # Create mixed validation set
+# total_records_count, records_removed_count \
+#     = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=False,
+#                            index_list=validation_index_list, save_filename=ml_ready_data_file_name, data_type="VALIDATION")
+#
+# print("Validation data (mixed) total probes: " +str(total_records_count), flush=True)
+# print("Validation data (mixed) probes removed: " +str(records_removed_count), flush=True)
+#
+# # Create clean testing dataset
+# total_records_count, records_removed_count \
+#     = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=True,
+#                            index_list=testing_index_list, save_filename=ml_ready_data_file_name, data_type="TESTING")
+#
+# print("Testing data (clean) total probes: " +str(total_records_count), flush=True)
+# print("Testing data (clean) probes removed: " +str(records_removed_count), flush=True)
+#
+# # Create mixed testing set
+# total_records_count, records_removed_count \
+#     = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=False,
+#                            index_list=testing_index_list, save_filename=ml_ready_data_file_name, data_type="TESTING")
+#
+# print("Testing data (mixed) total probes: " +str(total_records_count), flush=True)
+# print("Testing data (mixed) probes removed: " +str(records_removed_count), flush=True)
 
 

@@ -109,14 +109,19 @@ def get_local_statistics_df(test_df, prediction_list, truth_list, model, anomaly
         pr_display.plot(ax=ax2)
         plt.savefig(fname=save_file+r'curves.png')
 
+    if anomaly_bool == True:
+        suffix = "_CP_Model"
+    else:
+        suffix = "_New_Model"
+
     df_dict = {
-        'Accuracy': accuracy,
-        'F1-Score': f1_score,
-        'TPR': tpr,
-        'FPR': fpr,
-        'Precision': precision,
-        'TNR': tnr,
-        'FNR': fnr,
+        'Accuracy'+suffix: accuracy,
+        'F1-Score'+suffix: f1_score,
+        'TPR'+suffix: tpr,
+        'FPR'+suffix: fpr,
+        'Precision'+suffix: precision,
+        'TNR'+suffix: tnr,
+        'FNR'+suffix: fnr,
     }
 
     df = pd.DataFrame.from_dict(dict_to_key_value_list(df_dict))
@@ -139,11 +144,11 @@ def get_results(validation_set_df, validation_truth_df, anomaly_df, model, model
     # Create the columns in the dataframe associated with the model prediction
     local_statistics_prediction_df, auc_prediction = get_local_statistics_df(validation_set_df, predicted_results_list, true_results_list, model, False, save_folder)
     # Create the columns in the dataframe associated with the Censored Planet Anomaly prediction
-    local_statistics_anomaly_df, auc_anomaly = get_local_statistics_df(validation_set_df, anomaly_results_list, true_results_list, model, False, save_folder)
+    local_statistics_anomaly_df, _ = get_local_statistics_df(validation_set_df, anomaly_results_list, true_results_list, model, True, save_folder)
     # Create the columns in the dataframe from the model parameters
     local_statistics_parameters_df = pd.DataFrame.from_dict(dict_to_key_value_list(model_params))
     # Create the columns with the elapsed time and the AUC
-    prefix_dict = {'Version': version, 'Model Set': t_num, 'Model Run-Time': time_elapsed, 'AUC': auc_prediction}
+    prefix_dict = {'Model Name': model_name, 'Version': version, 'Model Set': t_num, 'Model Run-Time': time_elapsed, 'AUC': auc_prediction}
     prefix_df = pd.DataFrame.from_dict(dict_to_key_value_list(prefix_dict))
 
     partial_df_list = [prefix_df, local_statistics_prediction_df, local_statistics_anomaly_df, local_statistics_parameters_df]
@@ -236,15 +241,16 @@ for model_set in model_set_list:
     training_set_df = pd.read_parquet(path=training_set_file_name,
         engine='pyarrow').iloc[0:5000] #TODO After debugging, remove selective indices
 
-
-    validation_set_df = pd.read_parquet(path=validation_set_df,
+    validation_set_df = pd.read_parquet(path=validation_set_file_name,
         engine='pyarrow')
 
-    validation_truth_df = pd.read_csv(path=validation_truth_file_name)
+    validation_truth_df = pd.read_csv(validation_truth_file_name)
 
-    anomaly_df = pd.read_csv(path=anomaly_file_name)
+    anomaly_df = pd.read_csv(anomaly_file_name)
 
     save_folder = version_filename + r"T" +str(model_set) + r"/"
+
+    os.mkdir(save_folder)
 
     p = Process(target=run_ml_model,
                 args=(training_set_df, validation_set_df, validation_truth_df, anomaly_df, model_params, save_folder, model_set))
@@ -261,7 +267,7 @@ for model_set in model_set_list:
 
     model_file_name = version_filename + r"T" +str(model_set) + r"/local_stats.csv"
 
-    partial_df = pd.read_csv(path=model_file_name)
+    partial_df = pd.read_csv(model_file_name)
 
     partial_df_list.append(partial_df)
 
