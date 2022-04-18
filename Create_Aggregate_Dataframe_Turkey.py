@@ -11,6 +11,7 @@ country_file_name = home_file_name + cur_country_code + r'/'
 os.mkdir(country_file_name)
 
 partial_aggregate_dataframes_file_name = country_file_name + r"partial_aggregate_dataframes/"
+os.mkdir(partial_aggregate_dataframes_file_name)
 
 # Merge raw files into singular file for use
 print("Begin merging raw dataframes into a singular dataframe.", flush=True)

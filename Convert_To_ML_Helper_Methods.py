@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
-def create_ML_features(df):
+def create_ML_features(old_df):
 
     columns_to_keep = [
         'average_matchrate',
@@ -69,7 +69,11 @@ def create_ML_features(df):
         'test_response_4_asnum',
     ]
 
-    df = df[df.columns.intersection(columns_to_keep)] # drop unwanted columns
+    old_df = old_df.loc[:, columns_to_keep] # drop unwanted columns
+
+    df = old_df.copy()
+
+    # TODO reindex and/or load columns from df from scratch
 
     # Create new boolean columns to indicate more IPs
     row_count = df.shape[0]
@@ -83,6 +87,8 @@ def create_ML_features(df):
             more_ips[index] = True
 
     df['more_IPs'] = pd.Series(more_ips)
+
+    print("Passed the point.")
 
     #  Create new boolean columns to indicate if IP is being used
 
