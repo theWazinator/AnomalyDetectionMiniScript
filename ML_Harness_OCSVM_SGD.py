@@ -5,15 +5,13 @@ Here we run linear_model.SGDOneClassSVM, a linear-approximation of the OCSVM
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.datasets import make_classification
-from sklearn.metrics import RocCurveDisplay
-from sklearn.model_selection import train_test_split
+from sklearn import metrics
 from sklearn.linear_model import SGDOneClassSVM
 import time
-from itertools import islice
 from multiprocessing import Manager, Process
 import os
 from joblib import dump, load
+from ML_Harness_Helper_Methods import *
 
 
 model_name = "OCSVM_SGD_skl"
@@ -79,6 +77,52 @@ params_4 = {'nu': 0.5,
             'average': False,
 }
 
+def get_local_statistics_df(test_df, prediction_list, truth_list, model, anomaly_bool, save_file):
+
+    accuracy = metrics.accuracy_score(truth_list, prediction_list)
+    f1_score = metrics.f1_score(truth_list, prediction_list)
+    confusion_matrix = metrics.confusion_matrix(truth_list, prediction_list)
+    tn_count = confusion_matrix[0][0]
+    fn_count = confusion_matrix[1][0]
+    tp_count = confusion_matrix[1][1]
+    fp_count = confusion_matrix[0][1]
+    fpr = fp_count / (fp_count + tn_count)
+    tpr = tp_count / (tp_count + fn_count)
+    fnr = fn_count / (fn_count + tp_count)
+    tnr = tn_count / (tn_count + fp_count)
+    precision = tp_count / (tp_count + fp_count)
+
+    # Create AUC and precision/recall curves
+    auc = None
+    if anomaly_bool == False:
+
+        # TODO ensure this works with Pyod models
+        fpr_list, tpr_list, _ = metrics.roc_curve(truth_list, model.decision_function(test_df), pos_label=1)
+        roc_display = metrics.RocCurveDisplay(fpr=fpr_list, tpr=tpr_list)
+        auc = metrics.roc_auc_score(truth_list, model.decision_function(test_df))
+
+        prec, recall, _ = metrics.precision_recall_curve(truth_list, model.decision_function(test_df), pos_label=1)
+        pr_display = metrics.PrecisionRecallDisplay(precision=prec, recall=recall)
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
+        roc_display.plot(ax=ax1)
+        pr_display.plot(ax=ax2)
+        plt.savefig(fname=save_file+r'curves.png')
+
+    df_dict = {
+        'Accuracy': accuracy,
+        'F1-Score': f1_score,
+        'TPR': tpr,
+        'FPR': fpr,
+        'Precision': precision,
+        'TNR': tnr,
+        'FNR': fnr,
+    }
+
+    df = pd.DataFrame.from_dict(dict_to_key_value_list(df_dict))
+
+    return df, auc
+
 def get_results(validation_set_df, validation_truth_df, anomaly_df, model, model_params, save_folder, t_num, time_elapsed):
 
     predicted_results_list = model.predict(validation_set_df.to_numpy())
@@ -90,11 +134,23 @@ def get_results(validation_set_df, validation_truth_df, anomaly_df, model, model
         # If the model comes from scikit-learn, we need to convert the feature indicator into 0 for inlier and 1 for outlier
         predicted_results_list = convert_target_features(predicted_results_list)
 
-    # TODO include saving of AUC curves
+    # Create the column for time elapsed
 
-    # TODO compare to results from 'anomaly' from same dataset
+    # Create the columns in the dataframe associated with the model prediction
+    local_statistics_prediction_df, auc_prediction = get_local_statistics_df(validation_set_df, predicted_results_list, true_results_list, model, False, save_folder)
+    # Create the columns in the dataframe associated with the Censored Planet Anomaly prediction
+    local_statistics_anomaly_df, auc_anomaly = get_local_statistics_df(validation_set_df, anomaly_results_list, true_results_list, model, False, save_folder)
+    # Create the columns in the dataframe from the model parameters
+    local_statistics_parameters_df = pd.DataFrame.from_dict(dict_to_key_value_list(model_params))
+    # Create the columns with the elapsed time and the AUC
+    prefix_dict = {'Version': version, 'Model Set': t_num, 'Model Run-Time': time_elapsed, 'AUC': auc_prediction}
+    prefix_df = pd.DataFrame.from_dict(dict_to_key_value_list(prefix_dict))
 
-    return results_df
+    partial_df_list = [prefix_df, local_statistics_prediction_df, local_statistics_anomaly_df, local_statistics_parameters_df]
+
+    local_statistics_complete_df = pd.concat(partial_df_list, ignore_index=True, axis=1) # Concatenate the columns
+
+    return local_statistics_complete_df
 
 def run_ml_model(training_set_df, validation_set_df, validation_truth_df, anomaly_df, model_params, save_folder, t_num):
 
@@ -114,8 +170,6 @@ def run_ml_model(training_set_df, validation_set_df, validation_truth_df, anomal
     results_df.to_csv(save_folder +r"local_stats.csv", index=False)
 
     ("Finished validating and saving results for T= " +str(t_num))
-
-# TODO include timing of ML-training and all other variables in spreadsheet
 
 print("Begin machine learning harness")
 
@@ -219,6 +273,3 @@ master_df.reset_index(drop=True, inplace=True)
 #Save to file
 master_df.to_csv(index=False, path=version_filename + r"statistics.csv")
 print("End of machine learning harness for Version " +str(version) +".", flush=True)
-
-
-
