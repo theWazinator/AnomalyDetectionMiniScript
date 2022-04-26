@@ -4,7 +4,6 @@
  One copy has both the unclean and clean (presumed uncensored) data, and the other only the clean data
  """
 
-import os
 from Convert_To_ML_Helper_Methods import *
 
 # remove invalid records
@@ -26,7 +25,7 @@ def get_ASN_list(input_df, row):
 
     return asn_list
 
-def remove_unclean_records (input_df, AS_count_df):
+def get_unclean_record_indices (input_df, AS_count_df):
 
     # Convert AS_count_df into dictionary
 
@@ -81,14 +80,12 @@ def remove_unclean_records (input_df, AS_count_df):
 
             indices_to_remove.append(row)
 
-    clean_df = input_df.drop(index=indices_to_remove)
-
     print("Finished cleaning data")
 
-    return clean_df
+    return indices_to_remove
 
 # Create the training data from the original dataframe
-def create_ML_ready_data(df, AS_count_df, clean_only, save_filename):
+def create_ML_ready_data(df, AS_count_df, save_filename):
 
     df = df.copy()
 
@@ -96,59 +93,70 @@ def create_ML_ready_data(df, AS_count_df, clean_only, save_filename):
 
     total_records_count = df.shape[0]
 
-    if clean_only == False:
+    dirty_indices = get_unclean_record_indices(df, AS_count_df)
 
-        clean_moniker = "Mixed"
+    print("Clean indices determined")
 
-    if clean_only == True:
+    clean_indices = get_clean_indices(dirty_indices, total_records_count)
 
-        df = remove_unclean_records(df, AS_count_df)
+    records_removed_count = len(dirty_indices)
 
-        df = df.reset_index(drop=True)  # Reset the index from 0 to length-1 to account for unclean records that were removed
+    mixed_training_index_list = np.arange(0, int(total_records_count * training_split_fraction))
+    mixed_validation_index_list = np.arange(int(total_records_count * training_split_fraction) + 1,
+                             int(total_records_count * (training_split_fraction + validation_split_fraction)))
+    mixed_testing_index_list = np.arange(int(total_records_count * (training_split_fraction + validation_split_fraction)) + 1, total_records_count)
 
-        df = df.copy()
+    mixed_index_dict = {"TRAINING": mixed_training_index_list,
+                        "VALIDATION": mixed_validation_index_list,
+                        "TESTING": mixed_testing_index_list}
 
-        clean_moniker = "Clean"
+    clean_training_index_list = intersection(mixed_training_index_list, clean_indices)
+    clean_validation_index_list = intersection(mixed_validation_index_list, clean_indices)
+    clean_testing_index_list = intersection(mixed_testing_index_list, clean_indices)
 
-    row_count = df.shape[0]
-    records_removed_count = total_records_count - row_count
+    clean_index_dict = {"TRAINING": clean_training_index_list,
+                        "VALIDATION": clean_validation_index_list,
+                        "TESTING": clean_testing_index_list}
 
-    training_index_list = (0, int(row_count * training_split_fraction))
-    validation_index_list = (int(row_count * training_split_fraction) + 1,
-                             int(row_count * (training_split_fraction + validation_split_fraction)))
-    testing_index_list = (int(row_count * (training_split_fraction + validation_split_fraction)) + 1, row_count)
+    # Save the truth columns for comparison
+    for clean_moniker in ["Mixed", "Clean"]:
 
-    index_dict = {"TRAINING": training_index_list,
-                  "VALIDATION": validation_index_list,
-                  "TESTING": testing_index_list}
+        if clean_moniker == "Mixed":
 
-    for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
+            index_dict = mixed_index_dict
+            print("Mixed")
 
-        index_list = index_dict[data_type]
+        elif clean_moniker == "Clean":
 
-        subset_df = df.iloc[index_list[0]: index_list[1]] # Select only the rows we want
+            index_dict = clean_index_dict
+            print("Clean")
 
-        print(data_type+ " data has length " +str(subset_df.shape[0]))
+        for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
 
-        subset_df['anomaly'].astype(int).to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_anomaly.csv", \
-             index=False) # Converts True and False to 1 and 0
+            index_list = index_dict[data_type]
 
-        if country_code == 'CN':
+            subset_df = df.iloc[index_list] # Select only the rows we want
 
-            subset_df['GFWatch_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_GFWatch_Censored.csv", \
+            print(data_type+ " data has length " +str(subset_df.shape[0]))
+
+            subset_df['anomaly'].astype(int).to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_anomaly.csv", \
+                index=False) # Converts True and False to 1 and 0
+
+            if country_code == 'CN':
+
+                subset_df['GFWatch_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_GFWatch_Censored.csv", \
+                        index=False)
+
+            elif country_code == "US":
+
+                subset_df['Presumed_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_Presumed_Censored.csv", \
                     index=False)
 
-        elif country_code == "US":
+            else:
 
-            subset_df['Presumed_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_Presumed_Censored.csv", \
-                index=False)
-
-        else:
-
-            pass # No presumption of censorship for other countries
+                pass # No presumption of censorship for other countries
 
     # Drop the columns
-
     df.drop(['anomaly'], axis=1)
 
     if country_code == 'CN':
@@ -163,23 +171,33 @@ def create_ML_ready_data(df, AS_count_df, clean_only, save_filename):
 
         pass # No presumption of censorship for other countries
 
-    df = df.reset_index(drop=True)  # Reset the index from 0 to length-1
-
-    df = df.copy()
-
     ml_ready_df = create_ML_features(df)
 
-    for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
+    print("Transformation to ML Dataframe Completed")
 
-        index_list = index_dict[data_type]
+    for clean_moniker in ["Mixed", "Clean"]:
 
-        subset_df = ml_ready_df.iloc[index_list[0]: index_list[1]] # Select only the rows we want
+        if clean_moniker == "Mixed":
 
-        print(data_type+ " data has length " +str(subset_df.shape[0]))
+            index_dict = mixed_index_dict
+            print("Mixed")
 
-        subset_df = subset_df.reset_index(drop=True)  # Reset the index from 0 to length-1
+        elif clean_moniker == "Clean":
 
-        subset_df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=save_filename+data_type+ "_" +clean_moniker+ "_descriptiveFeatures_fullDataset.gzip")
+            index_dict = clean_index_dict
+            print("Clean")
+
+        for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
+
+            index_list = index_dict[data_type]
+
+            subset_ml_ready_df = ml_ready_df.iloc[index_list] # Select only the rows we want
+
+            print(data_type+ " data has length " +str(subset_ml_ready_df.shape[0]))
+
+            # Here we do not reset the index so we can later check that the dataset does not overlap
+
+            subset_ml_ready_df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=save_filename+data_type+ "_" +clean_moniker+ "_descriptiveFeatures_fullDataset.gzip")
 
     return total_records_count, records_removed_count
 
@@ -239,17 +257,11 @@ original_with_newColumn_df = original_with_newColumn_df.reset_index(drop=True) #
 
 # Create clean datasets
 total_records_count, records_removed_count \
-    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=True, save_filename=ml_ready_data_file_name)
+    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, save_filename=ml_ready_data_file_name)
 
-print("Data (clean) total probes: " +str(total_records_count), flush=True)
-print("Data (clean) probes removed: " +str(records_removed_count), flush=True)
-
-# Create mixed datasets
-total_records_count, records_removed_count \
-    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=False, save_filename=ml_ready_data_file_name)
-
-print("Data (mixed) total probes: " +str(total_records_count), flush=True)
-print("Data (mixed) probes removed: " +str(records_removed_count), flush=True)
+print("Data total probes: " +str(total_records_count), flush=True)
+print("Impure probes removed: " +str(records_removed_count), flush=True)
+print("Program Complete")
 
 # # Create clean training dataset
 # total_records_count, records_removed_count \

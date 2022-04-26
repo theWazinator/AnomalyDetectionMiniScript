@@ -6,7 +6,7 @@ Here we run linear_model.SGDOneClassSVM, a linear-approximation of the OCSVM
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn import metrics
-from sklearn.linear_model import SGDOneClassSVM
+from sklearn.svm import OneClassSVM
 import time
 from multiprocessing import Manager, Process
 import os
@@ -14,68 +14,62 @@ from joblib import dump, load
 from ML_Harness_Helper_Methods import *
 
 
-model_name = "OCSVM_SGD_skl"
+model_name = "OCSVM_OG_skl"
 version = 1
-version_filename = r"/home/jambrown/CP_Analysis/ML_Results/OCSVM_SGD/V" +str(version)+ "/"
+version_filename = r"/home/jambrown/CP_Analysis/ML_Results/OCSVM_OG/V" +str(version)+ "/"
 sklearn_bool = True
-model_set_list = [1,2,3,4]
-training_samples = 100000
+model_set_list = [1, 2, 3, 4] # TODO change back
+training_samples = 7000
+validation_samples = int(training_samples)
+testing_samples = int(training_samples)
 os.mkdir(version_filename)
 
-params_1 = {'nu': 0.005,
-            'fit_intercept': True,
-            'max_iter': 1000,
-            'tol': 0.001,
-            'shuffle': True,
-            'verbose': 1,
-            'random_state': 23452345,
-            'learning_rate': 'optimal',
-            'eta0': 0.0,
-            'power_t': 0.5,
-            'warm_start': False,
-            'average': False,
+params_1 = {'kernel': 'rbf',
+            'degree': 3,
+            'gamma': 'scale',
+            'coef0': 0,
+            'tol': 1e-3,
+            'nu': 0.5,
+            'shrinking': True,
+            'cache_size': 1000,
+            'verbose': True,
+            'max_iter': -1,
 }
 
-params_2 = {'nu': 0.005,
-            'fit_intercept': True,
-            'max_iter': 1000,
-            'tol': 0.001,
-            'shuffle': True,
-            'verbose': 1,
-            'random_state': 23452345,
-            'learning_rate': 'optimal',
-            'eta0': 0.0,
-            'power_t': 0.5,
-            'warm_start': False,
-            'average': False,
+params_2 = {'kernel': 'rbf',
+            'degree': 3,
+            'gamma': 'scale',
+            'coef0': 0,
+            'tol': 1e-3,
+            'nu': 0.5,
+            'shrinking': True,
+            'cache_size': 1000,
+            'verbose': True,
+            'max_iter': -1,
 }
 
-params_3 = {'nu': 0.005,
-            'fit_intercept': True,
-            'max_iter': 1000,
-            'tol': 0.001,
-            'shuffle': True,
-            'verbose': 1,
-            'random_state': 23452345,
-            'learning_rate': 'optimal',
-            'eta0': 0.0,
-            'power_t': 0.5,
-            'warm_start': False,
-            'average': False,
+params_3 = {'kernel': 'rbf',
+            'degree': 3,
+            'gamma': 'scale',
+            'coef0': 0,
+            'tol': 1e-3,
+            'nu': 0.5,
+            'shrinking': True,
+            'cache_size': 1000,
+            'verbose': True,
+            'max_iter': -1,
 }
 
-params_4 = {'nu': 0.005,
-            'fit_intercept': True,
-            'max_iter': 1000,
-            'tol': 0.001,
-            'shuffle': True,
-            'verbose': 1,
-            'random_state': 23452345,
-            'learning_rate': 'optimal',
-            'eta0': 0.0,
-            'power_t': 0.5,
-            'warm_start': False,
-            'average': False,
+params_4 = {'kernel': 'rbf',
+            'degree': 3,
+            'gamma': 'scale',
+            'coef0': 0,
+            'tol': 1e-3,
+            'nu': 0.5,
+            'shrinking': True,
+            'cache_size': 500,
+            'verbose': True,
+            'max_iter': -1,
 }
 
 def get_local_statistics_df(test_df, prediction_list, truth_list, model, save_file, anomaly_bool):
@@ -110,7 +104,7 @@ def get_local_statistics_df(test_df, prediction_list, truth_list, model, save_fi
                                                     # The AUC also cannot be calculated when we are using the Presumed_Censored column = 0 because TPR is constant (i.e. 0)
 
         # TODO ensure this works with Pyod models
-        fpr_list, tpr_list, _ = metrics.roc_curve(truth_list, model.decision_function(test_df), pos_label=1)
+        fpr_list, tpr_list, _ = metrics.roc_curve(truth_list, model.predict_proba(test_df), pos_label=1)
         roc_display = metrics.RocCurveDisplay(fpr=fpr_list, tpr=tpr_list)
         auc = metrics.roc_auc_score(truth_list, model.decision_function(test_df))
 
@@ -172,23 +166,23 @@ def get_results(validation_set_df, validation_truth_df, validation_comparison_df
 
 def run_ml_model(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model_params, save_folder, t_num):
 
-    print("Begin training model T = " +str(t_num))
+    print("Begin training model T = " +str(t_num), flush=True)
     begin_time = time.time()
-    clf = SGDOneClassSVM(**model_params)
+    clf = OneClassSVM(**model_params)
     clf.fit(training_set_df)
     time_elapsed = time.time() - begin_time
-    print("End training model T= " +str(t_num))
-    print("Time Elapsed: " +str(time_elapsed)+ " seconds.")
+    print("End training model T= " +str(t_num), flush=True)
+    print("Time Elapsed: " +str(time_elapsed)+ " seconds.", flush=True)
     dump(clf, save_folder +'model.joblib')
 
-    ("Begin validating results for T= " + str(t_num))
+    print("Begin validating results for T= " + str(t_num), flush=True)
 
     results_df = get_results(validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly,
                              comparison_anomaly, clf, model_params, save_folder, t_num, time_elapsed)
 
     results_df.to_csv(save_folder +r"local_stats.csv", index=False)
 
-    ("Finished validating and saving results for T= " +str(t_num))
+    print("Finished validating and saving results for T= " +str(t_num), flush=True)
 
 print("Begin machine learning harness")
 
@@ -259,18 +253,17 @@ for model_set in model_set_list:
         validation_anomaly = True
         comparison_anomaly = False
 
-
         model_params = params_4
 
     training_set_df = pd.read_parquet(path=training_set_file_name,
         engine='pyarrow').iloc[0:training_samples] # Only take the number of training samples specified
 
     validation_set_df = pd.read_parquet(path=validation_set_file_name,
-        engine='pyarrow')
+        engine='pyarrow').iloc[0:validation_samples]
 
-    validation_truth_df = pd.read_csv(validation_truth_file_name)
+    validation_truth_df = pd.read_csv(validation_truth_file_name).iloc[0:validation_samples]
 
-    validation_comparison_df = pd.read_csv(comparison_file_name)
+    validation_comparison_df = pd.read_csv(comparison_file_name).iloc[0:validation_samples]
 
     save_folder = version_filename + r"T" +str(model_set) + r"/"
 

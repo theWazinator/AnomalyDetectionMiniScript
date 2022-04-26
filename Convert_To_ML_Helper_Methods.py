@@ -2,6 +2,40 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
+# Python program to illustrate the intersection
+# of two lists
+def intersection(lst1, lst2):
+    # Use of hybrid method
+    temp = set(lst2)
+    lst3 = [value for value in lst1 if value in temp]
+    return lst3
+
+def get_clean_indices(dirty_indices, total_records_count):
+
+    dirty_indices.sort() # sort in increasing order
+
+    clean_indices = []
+
+    dirty_counter_index = 0
+
+    all_clean_from_here = False
+
+    for mixed_counter_index in range(0, total_records_count):
+
+        if all_clean_from_here == False and dirty_indices[dirty_counter_index] == mixed_counter_index :
+
+            dirty_counter_index += 1
+
+            if dirty_counter_index >= len(dirty_indices):
+
+                all_clean_from_here = True
+
+        else:
+
+            clean_indices.append(mixed_counter_index)
+
+    return clean_indices
+
 def create_ML_features(old_df):
 
     columns_to_keep = [
