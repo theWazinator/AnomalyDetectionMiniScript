@@ -5,6 +5,8 @@
  """
 
 from Convert_To_ML_Helper_Methods import *
+from joblib import dump, load
+import os
 
 # remove invalid records
 def remove_invalid_records(df):
@@ -25,7 +27,7 @@ def get_ASN_list(input_df, row):
 
     return asn_list
 
-def get_unclean_record_indices (input_df, AS_count_df):
+def get_unclean_record_indices (input_df, AS_count_df, country_code):
 
     # Convert AS_count_df into dictionary
 
@@ -60,6 +62,9 @@ def get_unclean_record_indices (input_df, AS_count_df):
         connect_error = input_df['connect_error'].iloc[row]
         test_query_successful = input_df['test_query_successful'].iloc[row]
 
+        if country_code == "CN":
+            gfwatch_censored = input_df['GFWatch_Censored'].iloc[row]
+
         remove_index = True
 
         asn_list = get_ASN_list(input_df, row)
@@ -72,9 +77,11 @@ def get_unclean_record_indices (input_df, AS_count_df):
 
                 if control_response_end_success == True and anomaly == False and connect_error == False and test_query_successful == True:
 
-                    if domain_datetime_asn_dict[domain][datetime] in asn_list:
+                    if country_code != "CN" or gfwatch_censored == False:
 
-                        remove_index = False # If there is a problem here, it is probably because the asn column is not recognized as numerical by Pandas
+                        if domain_datetime_asn_dict[domain][datetime] in asn_list:
+
+                            remove_index = False # If there is a problem here, it is probably because the asn column is not recognized as numerical by Pandas
 
         if remove_index == True:
 
@@ -93,7 +100,7 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
     total_records_count = df.shape[0]
 
-    dirty_indices = get_unclean_record_indices(df, AS_count_df)
+    dirty_indices = get_unclean_record_indices(df, AS_count_df, country_code)
 
     print("Clean indices determined")
 
@@ -171,7 +178,12 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
         pass # No presumption of censorship for other countries
 
-    ml_ready_df = create_ML_features(df)
+    ml_ready_df, ohenc, scaler = create_ML_features(df)
+
+    # Save one-hot-encoder and scaler
+
+    dump(ohenc, save_filename+"one_hot_encoder")
+    dump(scaler, save_filename+"scaler")
 
     print("Transformation to ML Dataframe Completed")
 
@@ -209,7 +221,10 @@ validation_split_fraction = 0.1
 testing_split_fraction = 1 - training_split_fraction - validation_split_fraction
 
 home_file_name = r"/home/jambrown/CP_Analysis/"
-ml_ready_data_file_name = home_file_name +country_code+ "/ML_ready_dataframes/"
+intermediary_file_name = home_file_name +country_code+ "/ML_ready_dataframes_V2/"
+date_filename = "all_months_combined/"
+ml_ready_data_file_name = intermediary_file_name +date_filename
+os.mkdir(ml_ready_data_file_name)
 aggregate_file_name = home_file_name +country_code+ "/raw_dataframe.gzip"
 
 GFWatch_table_filename = r'/home/jambrown/CP_Analysis/gfwatch_censored_domains.csv'

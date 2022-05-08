@@ -6,12 +6,12 @@ import random
 import copy
 import pickle
 
-output_path_base = r"C:\Users\jacob\PycharmProjects\AnomalyDetectionMiniScript\GFWatch_Combined_Dataset.gzip"
+output_path_base = r"C:\Users\jacob\PycharmProjects\AnomalyDetectionMiniScript\TESTING_Clean_descriptiveFeatures_fullDataset.gzip"
 
-df_tmp = pd.read_parquet(path=output_path_base, engine='pyarrow')
+df_tmp = pd.read_parquet(path=output_path_base, engine='pyarrow').iloc[0:1000]
 
 #print to CSV
-df_tmp.to_csv(path_or_buf=r"C:\Users\jacob\PycharmProjects\AnomalyDetectionMiniScript\GFWatch_Combined_Dataset.csv", \
+df_tmp.to_csv(path_or_buf=r"C:\Users\jacob\PycharmProjects\AnomalyDetectionMiniScript\TESTING_Clean_descriptiveFeatures_fullDataset.csv", \
              index=False)
 
 print(df_tmp.columns.values.tolist())

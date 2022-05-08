@@ -19,7 +19,7 @@ model_name = "IFOREST_PyOD"
 version = 1
 version_filename = r"/home/jambrown/CP_Analysis/ML_Results/IFOREST/V" +str(version)+ "/"
 sklearn_bool = False
-model_set_list = [1, 2, 3, 4]
+model_set_list = [1, 2, 3, 4, 5]
 training_samples = 250000
 validation_samples = int(training_samples/10)
 testing_samples = int(training_samples/10)
@@ -58,10 +58,21 @@ params_3 = {'n_estimators': 100,
             'verbose': 1,
 }
 
-params_4 = {'n_estimators': 100,
+params_4 = {'n_estimators': 200,
             'max_samples': 'auto',
             'contamination': None,
-            'max_features': 1.0,
+            'max_features': 0.25,
+            'bootstrap': False,
+            'n_jobs': 5,
+            'behaviour': 'old',
+            'random_state': 12345678,
+            'verbose': 1,
+}
+
+params_5 = {'n_estimators': 200,
+            'max_samples': 'auto',
+            'contamination': None,
+            'max_features': 0.25,
             'bootstrap': False,
             'n_jobs': 5,
             'behaviour': 'old',
@@ -246,13 +257,30 @@ for model_set in model_set_list:
 
         ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes/"
 
-        training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
+        training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
+        training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
+        validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
+        validation_truth_file_name = ml_ready_data_file_name + r'VALIDATION_Mixed_targetFeature_GFWatch_Censored.csv'
+        comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
+        validation_anomaly = False
+        comparison_anomaly = True
+
+        model_params = params_4
+
+    elif model_set == 5:
+
+        country_code = "CN"
+        country_name = "China"
+
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes/"
+
+        training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
         validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_descriptiveFeatures_fullDataset.gzip'
-        validation_truth_file_name = ml_ready_data_file_name + r'VALIDATION_Clean_targetFeature_anomaly.csv'
-        comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_targetFeature_GFWatch_Censored.csv'
-        validation_anomaly = True
-        comparison_anomaly = False
+        validation_truth_file_name = ml_ready_data_file_name + r'VALIDATION_Clean_targetFeature_GFWatch_Censored.csv'
+        comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_targetFeature_anomaly.csv'
+        validation_anomaly = False
+        comparison_anomaly = True
 
         model_params = params_4
 
@@ -268,7 +296,11 @@ for model_set in model_set_list:
 
     validation_comparison_df = pd.read_csv(comparison_file_name).iloc[0:validation_samples]
 
-    model_params["contamination"] = sum(np.squeeze(training_contam_df.to_numpy()))/training_samples
+    if model_set == 4 or model_set == 5: # Set the contamination to the smallest possible value
+        model_params["contamination"] = 0.001
+
+    else:
+        model_params["contamination"] = sum(np.squeeze(training_contam_df.to_numpy()))/training_samples
 
     print("Percent contamination in T" +str(model_set)+": " +str(model_params["contamination"]))
 

@@ -1,6 +1,9 @@
+import joblib
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder
+
 
 # Python program to illustrate the intersection
 # of two lists
@@ -256,19 +259,36 @@ def create_ML_features(old_df):
         'include_IP_4',
     ]
 
-    for column in categorical_columns:
-        temp_df = pd.get_dummies(df[column], prefix=column)
+    df.reset_index(drop=True) # Resets the index to avoid trouble merging later
 
-        df = pd.merge(left=df, right=temp_df, left_index=True, right_index=True)
+    df_categorical_untransformed = df[categorical_columns]
 
-        df = df.drop(columns=column)
+    numpy_categorical_untransformed = df_categorical_untransformed.to_numpy()
+
+    df_continuous = df.drop(columns=categorical_columns)
+
+    ohenc = OneHotEncoder(handle_unknown='ignore', sparse=False)
+    ohenc.fit(numpy_categorical_untransformed)
+    ohenc.feature_names_in_ = categorical_columns
+    numpy_categorical_transformed = ohenc.transform(numpy_categorical_untransformed)
+    df_categorical_transformed = pd.DataFrame(data=numpy_categorical_transformed, columns=ohenc.get_feature_names_out())
+
+    df_complete_transformed = pd.merge(left=df_continuous, right=df_categorical_transformed, left_index=True, right_index=True)
+
+    # Old method
+    # for column in categorical_columns:
+    #     temp_df = pd.get_dummies(df[column], prefix=column)
+    #
+    #     df = pd.merge(left=df, right=temp_df, left_index=True, right_index=True)
+    #
+    #     df = df.drop(columns=column)
 
     # Standard scale all variables
     # Note that all series metadata is lost at this point
 
-    column_list = df.columns.values.tolist()
+    column_list = df_complete_transformed.columns.values.tolist()
 
-    numpy_df = df.to_numpy()
+    numpy_df = df_complete_transformed.to_numpy()
 
     scaler = StandardScaler()
 
@@ -278,4 +298,4 @@ def create_ML_features(old_df):
 
     df = pd.DataFrame(numpy_df, columns=column_list)
 
-    return df
+    return df, ohenc, scaler
