@@ -13,13 +13,14 @@ from multiprocessing import Manager, Process
 import os
 from joblib import dump, load
 from ML_Harness_Helper_Methods import *
+import shap
 
 
 model_name = "IFOREST_PyOD"
-version = 1
+version = 10
 version_filename = r"/home/jambrown/CP_Analysis/ML_Results/IFOREST/V" +str(version)+ "/"
 sklearn_bool = False
-model_set_list = [1, 2, 3, 4, 5]
+model_set_list = [4]
 training_samples = 250000
 validation_samples = int(training_samples/10)
 testing_samples = int(training_samples/10)
@@ -155,6 +156,26 @@ def get_results(validation_set_df, validation_truth_df, validation_comparison_df
 
     assert(-1 not in predicted_results_list) # Ensure the above statement was executed correctly
 
+    # Get explanation values
+    exp = shap.TreeExplainer(model)  # Explainer
+    shap_values = exp.shap_values(validation_set_df.to_numpy())  # Calculate SHAP values
+
+    feature_names = list(validation_set_df.columns)
+    importance_dict = {}
+
+    for index in range(0, len(shap_values[0])):
+        mean_absolute_value = np.mean(np.abs(shap_values[:][index]))
+        importance_dict[feature_names[index]] = mean_absolute_value
+
+    sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
+    sorted_num_list = sorted(importance_dict.values(), reverse=True)
+
+    printout_dict = {"Features": sorted_features_list, "Importance": sorted_num_list}
+
+    printout_df = pd.DataFrame.from_dict(printout_dict)
+
+    printout_df.to_csv(path_or_buf=(save_folder + r"feature_importances.csv"), index=False)
+
     # Create the column for time elapsed
 
     # Create the columns in the dataframe associated with the model prediction
@@ -204,7 +225,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
@@ -221,7 +242,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
@@ -238,7 +259,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
@@ -255,7 +276,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
@@ -272,7 +293,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'

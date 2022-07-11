@@ -12,14 +12,15 @@ import time
 from multiprocessing import Process
 import os
 from ML_Harness_Helper_Methods import *
+import shap
 
 
 model_name = "XGBOOST"
-version = 1
+version = 16
 version_filename = r"/home/jambrown/CP_Analysis/ML_Results/XGBOOST/V" +str(version)+ "/"
 sklearn_bool = False
-model_set_list = [1, 2, 3]
-training_samples = 250000
+model_set_list = [4]
+training_samples = 500000
 validation_samples = int(training_samples/10)
 testing_samples = int(training_samples/10)
 os.mkdir(version_filename)
@@ -28,7 +29,7 @@ os.mkdir(version_filename)
 
 # Use AUC for evaluation as opposed to curve (need to change disable_default_eval_metric and eval_metric)
 
-params_1 = {'nthread': 5,
+params_1 = {'nthread': 10,
             'predictor': 'cpu_predictor',
             'verbosity': 1,
             'booster': 'gbtree',
@@ -36,8 +37,8 @@ params_1 = {'nthread': 5,
             'disable_default_eval_metric': False,
             'eta': 0.3,
             'gamma': 0,
-            'max_depth': 6,
-            'min_child_weight': 1,
+            'max_depth': 7,
+            'min_child_weight': 0.8,
             'max_delta_step': 0,
             'subsample': 1,
             'colsample_bytree': 1,
@@ -78,6 +79,26 @@ params_3 = {'nthread': 5,
             'gamma': 0,
             'max_depth': 6,
             'min_child_weight': 1,
+            'max_delta_step': 0,
+            'subsample': 1,
+            'colsample_bytree': 1,
+            'lambda': 1,
+            'alpha': 0,
+            'tree_method': 'hist', # Try approx as well
+            'objective': 'binary:logistic', # Try binary logistic if this does not work
+            'eval_metric': 'error',
+}
+
+params_4 = {'nthread': 10,
+            'predictor': 'cpu_predictor',
+            'verbosity': 1,
+            'booster': 'gbtree',
+            'scale_pos_weight': None, # Is this being used? Rebalance dataset to 50-50 if unsure
+            'disable_default_eval_metric': False,
+            'eta': 0.3,
+            'gamma': 0,
+            'max_depth': 7,
+            'min_child_weight': 0.8,
             'max_delta_step': 0,
             'subsample': 1,
             'colsample_bytree': 1,
@@ -159,6 +180,27 @@ def get_results(dvalid, validation_target_df, model, model_params, save_folder, 
 
     assert(-1 not in predicted_results_list) # Ensure the above statement was executed correctly
 
+    # Get explanation values
+    explainer = shap.Explainer(model)
+    shap_values = explainer.shap_values(dvalid)
+
+    feature_names = dvalid.feature_names
+    importance_dict = {}
+
+    for index in range(0, len(shap_values[0])):
+
+        mean_absolute_value = np.mean(np.abs(shap_values[:][index]))
+        importance_dict[feature_names[index]] = mean_absolute_value
+
+    sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
+    sorted_num_list = sorted(importance_dict.values(), reverse=True)
+
+    printout_dict = {"Features": sorted_features_list, "Importance": sorted_num_list}
+
+    printout_df = pd.DataFrame.from_dict(printout_dict)
+
+    printout_df.to_csv(path_or_buf=(save_folder + r"feature_importances.csv"), index=False)
+
     # Create the column for time elapsed
 
     # Create the columns in the dataframe associated with the model prediction
@@ -179,8 +221,8 @@ def run_ml_model(training_descriptive_df, training_target_df, validation_descrip
 
     print("Begin training model T = " +str(t_num), flush=True)
     begin_time = time.time()
-    dtrain = xgb.DMatrix(training_descriptive_df, label=training_target_df)
-    dvalid = xgb.DMatrix(validation_descriptive_df, label=validation_target_df)
+    dtrain = xgb.DMatrix(training_descriptive_df, label=training_target_df, feature_names=list(training_descriptive_df.columns))
+    dvalid = xgb.DMatrix(validation_descriptive_df, label=validation_target_df, feature_names=list(validation_descriptive_df.columns))
     evals = [(dtrain, 'train') , (dvalid, 'valid')]
     model = xgb.train(model_params, dtrain, num_boost_round=10, evals=evals) # TODO input XGboost model
     time_elapsed = time.time() - begin_time
@@ -207,7 +249,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
 
         training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
@@ -221,12 +263,12 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
 
         training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_anomaly.csv'
-        validation_descriptive_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
-        validation_target_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
+        validation_descriptive_file_name = ml_ready_data_file_name +r'TESTING_Mixed_descriptiveFeatures_fullDataset.gzip'
+        validation_target_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_anomaly.csv'
 
         model_params = params_2
 
@@ -235,12 +277,32 @@ for model_set in model_set_list:
         country_code = "US"
         country_name = "United States"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
 
         training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_anomaly.csv'
         validation_descriptive_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
         validation_target_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
+
+        model_params = params_3
+
+    elif model_set == 4:
+
+        country_code = "CN"
+        country_name = "China"
+
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+
+        training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
+        training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
+
+        country_code = "US"
+        country_name = "United States"
+
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+
+        validation_descriptive_file_name = ml_ready_data_file_name +r'TESTING_Clean_descriptiveFeatures_fullDataset.gzip'
+        validation_target_file_name = ml_ready_data_file_name +r'TESTING_Clean_targetFeature_anomaly.csv'
 
         model_params = params_3
 

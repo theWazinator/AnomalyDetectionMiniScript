@@ -5,80 +5,14 @@ Here we run linear_model.SGDOneClassSVM, a linear-approximation of the OCSVM
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from sklearn import metrics
 from sklearn.linear_model import SGDOneClassSVM
 import time
-from multiprocessing import Manager, Process
 import os
-from joblib import dump, load
 from ML_Harness_Helper_Methods import *
-import numpy as np
+from joblib import dump
 import shap
-
-
-model_name = "OCSVM_SGD_skl"
-version = 12
-version_filename = r"/home/jambrown/CP_Analysis/ML_Results/OCSVM_SGD/V" +str(version)+ "/"
-sklearn_bool = True
-model_set_list = [4]
-training_samples = 100000
-os.mkdir(version_filename)
-
-params_1 = {'nu': 0.05,
-            'fit_intercept': True,
-            'max_iter': 1000,
-            'tol': 0.001,
-            'shuffle': True,
-            'verbose': 1,
-            'random_state': 23452345,
-            'learning_rate': 'optimal',
-            'eta0': 0.0,
-            'power_t': 0.5,
-            'warm_start': False,
-            'average': False,
-}
-
-params_2 = {'nu': 0.005,
-            'fit_intercept': True,
-            'max_iter': 1000,
-            'tol': 0.001,
-            'shuffle': True,
-            'verbose': 1,
-            'random_state': 23452345,
-            'learning_rate': 'optimal',
-            'eta0': 0.0,
-            'power_t': 0.5,
-            'warm_start': False,
-            'average': False,
-}
-
-params_3 = {'nu': 0.005,
-            'fit_intercept': True,
-            'max_iter': 1000,
-            'tol': 0.001,
-            'shuffle': True,
-            'verbose': 1,
-            'random_state': 23452345,
-            'learning_rate': 'optimal',
-            'eta0': 0.0,
-            'power_t': 0.5,
-            'warm_start': False,
-            'average': False,
-}
-
-params_4 = {'nu': 0.05,
-            'fit_intercept': True,
-            'max_iter': 1000,
-            'tol': 0.001,
-            'shuffle': True,
-            'verbose': 1,
-            'random_state': 23452345,
-            'learning_rate': 'optimal',
-            'eta0': 0.0,
-            'power_t': 0.5,
-            'warm_start': False,
-            'average': False,
-}
 
 def get_local_statistics_df(test_df, prediction_list, truth_list, model, save_file, anomaly_bool):
 
@@ -213,107 +147,128 @@ def run_ml_model(training_set_df, validation_set_df, validation_truth_df, valida
 
     ("Finished validating and saving results for T= " +str(t_num))
 
+model_params = {
+            'nu': 0.05,
+            'fit_intercept': True,
+            'max_iter': 1000,
+            'tol': 0.001,
+            'shuffle': True,
+            'verbose': 1,
+            'random_state': 23452345,
+            'learning_rate': 'optimal',
+            'eta0': 0.0,
+            'power_t': 0.5,
+            'warm_start': False,
+            'average': False,
+}
+
+def month_to_month_year(month):
+
+    if month == 7:
+        return 7, 2021
+
+    if month == 8:
+        return 8, 2021
+
+    if month == 9:
+        return 9, 2021
+
+    if month == 10:
+        return 10, 2021
+
+    if month == 11:
+        return 11, 2021
+
+    if month == 12:
+        return 12, 2021
+
+    if month == 13:
+        return 1, 2022
+
+model_name = "OCSVM_SGD_skl"
+version = "GFWatch_Timing_Experiments"
+version_filename = r"/home/jambrown/CP_Analysis/ML_Results/OCSVM_SGD/V" +str(version)+ "/"
+sklearn_bool = True
+os.mkdir(version_filename)
+
 print("Begin machine learning harness")
 
 home_file_name = r"/home/jambrown/CP_Analysis/"
-ps = list()
-for model_set in model_set_list:
 
-    if model_set == 1:
+t_name_list = []
 
-        country_code = "CN"
-        country_name = "China"
+for train_month_count in [1, 2, 3, 4, 5, 6]:
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+    for starting_train_month in range(7, 14-train_month_count):
 
-        training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
-        validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
-        validation_truth_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_GFWatch_Censored.csv'
-        comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
-        validation_anomaly = False
-        comparison_anomaly = True
+        train_month_range = np.arange(starting_train_month, starting_train_month+train_month_count)
 
-        model_params = params_1
+        for test_month in range(train_month_range[-1]+1, 14):
 
-    elif model_set == 2:
+            country_code = "CN"
+            country_name = "China"
 
-        country_code = "CN"
-        country_name = "China"
+            t_name = "Training_" +str(train_month_range) +"_Test_"+ str(test_month)
+            t_name_list.append(t_name)
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+            print(t_name)
+            print("Training months: " +str(train_month_range))
+            print("Test month: " +str(test_month))
 
-        training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
-        validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
-        validation_truth_file_name = ml_ready_data_file_name + r'VALIDATION_Mixed_targetFeature_anomaly.csv'
-        comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_GFWatch_Censored.csv'
-        validation_anomaly = True
-        comparison_anomaly = False
+            # Get training df
 
-        model_params = params_2
+            training_descriptive_df_list = []
+            training_target_df_list = []
 
-    elif model_set == 3:
+            for training_month in train_month_range:
 
-        country_code = "US"
-        country_name = "United States"
+                og_train_month, og_train_year = month_to_month_year(training_month)
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+                training_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_train_month)+ "_" +str(og_train_year)+ "/TRAINING_Clean_descriptiveFeatures_fullDataset.gzip"
+                partial_descriptive_df = pd.read_parquet(path=training_descriptive_file_name, engine='pyarrow')
+                training_descriptive_df_list.append(partial_descriptive_df)
 
-        training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
-        validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_descriptiveFeatures_fullDataset.gzip'
-        validation_truth_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_targetFeature_Presumed_Censored.csv'
-        comparison_file_name = ml_ready_data_file_name + r'VALIDATION_Clean_targetFeature_anomaly.csv'
-        validation_anomaly = False
-        comparison_anomaly = True
+                training_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" + str(og_train_month) + "_" + str(og_train_year) + "/TRAINING_Clean_targetFeature_GFWatch_Censored.csv"
+                partial_target_df = pd.read_csv(training_target_file_name)
+                training_target_df_list.append(partial_target_df)
 
+            training_descriptive_df = pd.concat(training_descriptive_df_list, ignore_index=True, axis=0)
+            training_descriptive_df = training_descriptive_df
 
-        model_params = params_3
+            training_target_df = pd.concat(training_target_df_list, ignore_index=True, axis=0)
+            training_target_df = training_target_df
 
-    elif model_set == 4:
+            # Get target df
+            og_test_month, og_test_year = month_to_month_year(test_month)
+            test_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_descriptiveFeatures_fullDataset.gzip"
+            test_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_GFWatch_Censored.csv"
+            test_comparison_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_anomaly.csv"
 
-        country_code = "US"
-        country_name = "United States"
+            test_descriptive_df = pd.read_parquet(path=test_descriptive_file_name, engine='pyarrow')
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+            test_target_df = pd.read_csv(test_target_file_name)
+            test_comparison_df = pd.read_csv(test_comparison_file_name)
 
-        training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
-        validation_set_file_name = ml_ready_data_file_name +r'TESTING_Mixed_descriptiveFeatures_fullDataset.gzip'
-        validation_truth_file_name = ml_ready_data_file_name + r'TESTING_Mixed_targetFeature_anomaly.csv'
-        comparison_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_Presumed_Censored.csv'
-        validation_anomaly = True
-        comparison_anomaly = False
+            training_samples = training_descriptive_df.shape[0]
 
+            print("Training samples: " +str(training_samples))
 
-        model_params = params_4
+            contamination = sum(np.squeeze(training_target_df.to_numpy()))/training_samples
 
-    training_set_df = pd.read_parquet(path=training_set_file_name,
-        engine='pyarrow').iloc[0:training_samples] # Only take the number of training samples specified
+            print("Percent contamination: " +str(contamination))
 
-    validation_set_df = pd.read_parquet(path=validation_set_file_name,
-        engine='pyarrow')
+            save_folder = version_filename + r"T" +str(t_name) + r"/"
 
-    validation_truth_df = pd.read_csv(validation_truth_file_name)
+            os.mkdir(save_folder)
 
-    validation_comparison_df = pd.read_csv(comparison_file_name)
-
-    save_folder = version_filename + r"T" +str(model_set) + r"/"
-
-    os.mkdir(save_folder)
-
-    p = Process(target=run_ml_model,
-                args=(training_set_df, validation_set_df, validation_truth_df,
-                      validation_comparison_df, validation_anomaly, comparison_anomaly, model_params, save_folder, model_set))
-    ps.append(p)
-    p.start()
-
-for p in ps:
-    p.join()
+            run_ml_model(training_descriptive_df, test_descriptive_df, test_target_df, test_comparison_df, False, True, model_params, save_folder, t_name)
 
 # Create csv containing all pertinent information about the models, their parameters, and the results
 partial_df_list = []
 
-for model_set in model_set_list:
+for t_name in t_name_list:
 
-    model_file_name = version_filename + r"T" +str(model_set) + r"/local_stats.csv"
+    model_file_name = version_filename + r"T" +str(t_name) + r"/local_stats.csv"
 
     partial_df = pd.read_csv(model_file_name)
 
@@ -325,5 +280,5 @@ master_df = pd.concat(partial_df_list, ignore_index=True, axis=0)
 master_df.reset_index(drop=True, inplace=True)
 
 #Save to file
-master_df.to_csv(path_or_buf=version_filename + r"statistics.csv", index=False)
+master_df.to_csv(path_or_buf=(version_filename + r"statistics.csv"), index=False)
 print("End of machine learning harness for Version " +str(version) +".", flush=True)
