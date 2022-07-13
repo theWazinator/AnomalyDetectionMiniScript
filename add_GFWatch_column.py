@@ -164,8 +164,6 @@ def run_add_GFWatch_column(data_df, table_filename, save_filename):
 
     print("Begin merging dataframe", flush=True)
 
-    # TODO reload and combine data sets into complete_data_df
-
     complete_dataframe_list = []
 
     for i in range(0, cpus_minus_one+1):
@@ -177,14 +175,18 @@ def run_add_GFWatch_column(data_df, table_filename, save_filename):
 
     return complete_df
 
+home_folder = r"/home/jambrown/"  # TODO change this name for your file structure
+
+home_file_name = home_folder + r"CP_Analysis/"
+
 country_code = "CN"
 country_name = "China"
 
-home_file_name = r"/home/jambrown/CP_Analysis/"
 ml_ready_data_file_name = home_file_name +country_code+ "/ML_ready_dataframes/"
 aggregate_file_name = home_file_name +country_code+ "/raw_dataframe.gzip"
 
-GFWatch_table_filename = r'/home/jambrown/CP_Analysis/gfwatch_censored_domains.csv'
+
+GFWatch_table_filename = home_file_name+ r'gfwatch_censored_domains.csv'
 save_gfwatch_file_name = home_file_name +country_code+ "/GFWatch_Combined_Dataset.gzip"
 GFWatch_partial_dataframes_filename = home_file_name +country_code+ "/GFWatch_partial_dataframes/"
 

@@ -4,10 +4,10 @@ import os
 import requests
 from subprocess import Popen, PIPE
 import re
-import sys
 
-data_dir = sys.argv[1]  # /data/censorship/censored-planet/
-start_date = int(sys.argv[2])  # in the form of yyyymmdd, e.g., 20210101
+home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
+start_date = 20210630   # in the form of yyyymmdd, e.g., 20210101 # TODO change this to your preferred date
+data_dir = home_folder_name +r"CP_Downloads/"
 
 def main():
     fetched_files = set(os.listdir(data_dir))

@@ -2,7 +2,7 @@
  Export clean/non-censored domain_ASes based on majority vote
  """
 from multiprocessing import Manager, Process
-from methods import format_datetime_from_file_name
+from dataframe_processing_helper_methods import format_datetime_from_file_name
 import os
 import pandas as pd
 import numpy as np
@@ -30,9 +30,9 @@ def asn_magic(domain_dict, domain):
 
     return max_asn_num, max_asn_count, percent_of_asns;
 
-def worker(list_of_probe_files):
+def worker(list_of_probe_files, home_folder):
 
-    home_file_name = r"/home/jambrown/CP_Analysis/"
+    home_file_name = home_folder + r"CP_Analysis/"
 
     for probe_file in list_of_probe_files:
 
@@ -140,7 +140,9 @@ def main():
 
     print("Start Processing")
 
-    cp_downloads_zipped_file_name = r"/home/jambrown/CP_Downloads/"
+    home_folder = r"/home/jambrown/"  # TODO change this name for your file structure
+
+    cp_downloads_zipped_file_name = home_folder + r"CP_Downloads/"
 
     list_of_zipped_cp_files = os.listdir(cp_downloads_zipped_file_name)
     list_of_zipped_cp_files.sort(reverse=True)  # Ensures most recent scans are processed first
@@ -157,7 +159,7 @@ def main():
 
         list_of_probe_files = list_of_zipped_cp_files[cur_start_index: cur_end_index]
 
-        p = Process(target=worker, args=(list_of_probe_files,))
+        p = Process(target=worker, args=(list_of_probe_files, home_folder,))
         ps.append(p)
         p.start()
 

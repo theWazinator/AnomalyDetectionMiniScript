@@ -211,8 +211,6 @@ def json_to_df(filename, batch_dt_input):
                                 if ip_index >= MAX_IPs:
                                     break # Ensures that max number of IP response columns is not exceeded
 
-                                # TODO ensure that "matches" list and "matched" list are handled properly since JSON extract this as None type
-
                                 matched_list = dt["response"][response_index]["response"][ip]["matched"]
 
                                 ip_match = 0

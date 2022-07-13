@@ -1,14 +1,17 @@
 import pandas as pd
 import os
 
-home_file_name = r"/home/jambrown/CP_Analysis/"
+home_folder = r"/home/jambrown/"  # TODO change this name for your file structure
 
-cp_downloads_zipped_file_name = r"/home/jambrown/CP_Downloads/"
+cp_downloads_zipped_file_name = home_folder + r"CP_Downloads/"
+
+home_file_name = home_folder + r"CP_Analysis/"
+
 list_of_zipped_cp_files = os.listdir(cp_downloads_zipped_file_name)
 list_of_zipped_cp_files.sort(reverse=True)  # Ensures most recent scans are processed first
 
 # Get label headers
-df_0 = pd.read_parquet(path='/home/jambrown/CP_Analysis/CP_Satellite-2022-02-09-12-00-01/other_docs/max_asn.gzip', engine='pyarrow')
+df_0 = pd.read_parquet(path=home_folder+'CP_Analysis/CP_Satellite-2022-02-09-12-00-01/other_docs/max_asn.gzip', engine='pyarrow')
 master_df = pd.DataFrame.from_records(data=df_0, nrows=1)
 master_df.drop(labels=master_df.index[0:], inplace=True)
 

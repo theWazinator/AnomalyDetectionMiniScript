@@ -11,25 +11,23 @@ import xgboost as xgb
 import time
 from multiprocessing import Process
 import os
-from ML_Harness_Helper_Methods import *
+from ml_harness_helper_methods import *
 import shap
 
 
+home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
+training_samples = 500000 # TODO change training sample count as required
+
 model_name = "XGBOOST"
 version = 16
-version_filename = r"/home/jambrown/CP_Analysis/ML_Results/XGBOOST/V" +str(version)+ "/"
+version_filename = home_folder_name+r"CP_Analysis/ML_Results/XGBOOST/V" +str(version)+ "/"
 sklearn_bool = False
 model_set_list = [4]
-training_samples = 500000
 validation_samples = int(training_samples/10)
 testing_samples = int(training_samples/10)
 os.mkdir(version_filename)
 
-# TODO Ideas
-
-# Use AUC for evaluation as opposed to curve (need to change disable_default_eval_metric and eval_metric)
-
-params_1 = {'nthread': 10,
+params_1 = {'nthread': 10, # TODO change params as required
             'predictor': 'cpu_predictor',
             'verbosity': 1,
             'booster': 'gbtree',
@@ -139,7 +137,6 @@ def get_local_statistics_df(dvalid, prediction_list, truth_list, model, save_fil
     auc = -1
     if (1 in truth_list): # The AUC cannot be calculated unless there are positives in the truth column
                                                     # The AUC also cannot be calculated when we are using the Presumed_Censored column = 0 because TPR is constant (i.e. 0)
-        # TODO ensure this works with XGBoost models
         fpr_list, tpr_list, _ = metrics.roc_curve(truth_list, model.predict(dvalid), pos_label=1)
         roc_display = metrics.RocCurveDisplay(fpr=fpr_list, tpr=tpr_list)
         auc = metrics.roc_auc_score(truth_list, model.predict(dvalid))
@@ -224,7 +221,7 @@ def run_ml_model(training_descriptive_df, training_target_df, validation_descrip
     dtrain = xgb.DMatrix(training_descriptive_df, label=training_target_df, feature_names=list(training_descriptive_df.columns))
     dvalid = xgb.DMatrix(validation_descriptive_df, label=validation_target_df, feature_names=list(validation_descriptive_df.columns))
     evals = [(dtrain, 'train') , (dvalid, 'valid')]
-    model = xgb.train(model_params, dtrain, num_boost_round=10, evals=evals) # TODO input XGboost model
+    model = xgb.train(model_params, dtrain, num_boost_round=10, evals=evals)
     time_elapsed = time.time() - begin_time
     print("End training model T= " +str(t_num), flush=True)
     print("Time Elapsed: " +str(time_elapsed)+ " seconds.", flush=True)
@@ -240,7 +237,7 @@ def run_ml_model(training_descriptive_df, training_target_df, validation_descrip
 
 print("Begin machine learning harness")
 
-home_file_name = r"/home/jambrown/CP_Analysis/"
+home_file_name = home_folder_name+ r"CP_Analysis/"
 ps = list()
 for model_set in model_set_list:
 

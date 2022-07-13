@@ -4,8 +4,8 @@
  One copy has both the unclean and clean (presumed uncensored) data, and the other only the clean data
  """
 
-from Convert_To_ML_Helper_Methods import *
-from joblib import dump, load
+from convert_to_ml_helper_methods import *
+from joblib import dump
 import os
 
 # remove invalid records
@@ -125,43 +125,58 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
                         "VALIDATION": clean_validation_index_list,
                         "TESTING": clean_testing_index_list}
 
-    # Save the truth columns for comparison
-    for clean_moniker in ["Mixed", "Clean"]:
+    for month_year in [(7, 2021), (8, 2021), (9, 2021), (10, 2021), (11, 2021), (12, 2021), (1, 2022)]:
+        cur_month = month_year[0]
+        cur_year = month_year[1]
 
-        if clean_moniker == "Mixed":
+        monthly_df = df.loc[(df['batch_datetime'].dt.month == cur_month) & (df['batch_datetime'].dt.year == cur_year)]
 
-            index_dict = mixed_index_dict
-            print("Mixed")
+        print("Month: " + str(cur_month) + " Year: " + str(cur_year))
+        print("Data total probes: " + str(monthly_df.shape[0]), flush=True)
 
-        elif clean_moniker == "Clean":
+        date_folder_file_name = save_filename + str(cur_month) + "_" + str(cur_year) + "/"
+        os.mkdir(date_folder_file_name)
 
-            index_dict = clean_index_dict
-            print("Clean")
+        print("Month: " + str(cur_month) + " Year: " + str(cur_year))
+        print("Data total probes: " + str(monthly_df.shape[0]), flush=True)
 
-        for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
+        # Save the truth columns for comparison
+        for clean_moniker in ["Mixed", "Clean"]:
 
-            index_list = index_dict[data_type]
+            if clean_moniker == "Mixed":
 
-            subset_df = df.iloc[index_list] # Select only the rows we want
+                index_dict = mixed_index_dict
+                print("Mixed")
 
-            print(data_type+ " data has length " +str(subset_df.shape[0]))
+            elif clean_moniker == "Clean":
 
-            subset_df['anomaly'].astype(int).to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_anomaly.csv", \
-                index=False) # Converts True and False to 1 and 0
+                index_dict = clean_index_dict
+                print("Clean")
 
-            if country_code == 'CN':
+            for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
 
-                subset_df['GFWatch_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_GFWatch_Censored.csv", \
+                index_list = index_dict[data_type]
+
+                subset_df = monthly_df.loc[intersection(index_list, list(monthly_df.index.values))] # Select only the rows we want
+
+                print(data_type+ " data has length " +str(subset_df.shape[0]))
+
+                subset_df['anomaly'].astype(int).to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_anomaly.csv", \
+                    index=False) # Converts True and False to 1 and 0
+
+                if country_code == 'CN':
+
+                    subset_df['GFWatch_Censored'].to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_GFWatch_Censored.csv", \
+                            index=False)
+
+                elif country_code == "US":
+
+                    subset_df['Presumed_Censored'].to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_Presumed_Censored.csv", \
                         index=False)
 
-            elif country_code == "US":
+                else:
 
-                subset_df['Presumed_Censored'].to_csv(path_or_buf=save_filename+data_type+ "_" +clean_moniker+ "_targetFeature_Presumed_Censored.csv", \
-                    index=False)
-
-            else:
-
-                pass # No presumption of censorship for other countries
+                    pass # No presumption of censorship for other countries
 
     # Drop the columns
     df.drop(['anomaly'], axis=1)
@@ -178,7 +193,7 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
         pass # No presumption of censorship for other countries
 
-    ml_ready_df, ohenc, scaler = create_ML_features(df)
+    ml_ready_df, ohenc, scaler = create_ML_features(df.copy())
 
     # Save one-hot-encoder and scaler
 
@@ -187,47 +202,59 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
     print("Transformation to ML Dataframe Completed")
 
-    for clean_moniker in ["Mixed", "Clean"]:
+    for month_year in [(7, 2021), (8, 2021), (9, 2021), (10, 2021), (11, 2021), (12, 2021), (1, 2022)]:
+        cur_month = month_year[0]
+        cur_year = month_year[1]
 
-        if clean_moniker == "Mixed":
+        monthly_df = ml_ready_df.loc[(df['batch_datetime'].dt.month == cur_month) & (df['batch_datetime'].dt.year == cur_year)]
 
-            index_dict = mixed_index_dict
-            print("Mixed")
+        print("Month: " + str(cur_month) + " Year: " + str(cur_year))
+        print("Data total probes: " + str(monthly_df.shape[0]), flush=True)
 
-        elif clean_moniker == "Clean":
+        date_folder_file_name = save_filename + str(cur_month) + "_" + str(cur_year) + "/"
 
-            index_dict = clean_index_dict
-            print("Clean")
+        print("Month: " + str(cur_month) + " Year: " + str(cur_year))
+        print("Data total probes: " + str(monthly_df.shape[0]), flush=True)
 
-        for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
+        for clean_moniker in ["Mixed", "Clean"]:
 
-            index_list = index_dict[data_type]
+            if clean_moniker == "Mixed":
 
-            subset_ml_ready_df = ml_ready_df.iloc[index_list] # Select only the rows we want
+                index_dict = mixed_index_dict
+                print("Mixed")
 
-            print(data_type+ " data has length " +str(subset_ml_ready_df.shape[0]))
+            elif clean_moniker == "Clean":
 
-            # Here we do not reset the index so we can later check that the dataset does not overlap
+                index_dict = clean_index_dict
+                print("Clean")
 
-            subset_ml_ready_df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=save_filename+data_type+ "_" +clean_moniker+ "_descriptiveFeatures_fullDataset.gzip")
+            for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
+
+                index_list = index_dict[data_type]
+
+                subset_ml_ready_df = monthly_df.loc[intersection(index_list, list(monthly_df.index.values))] # Select only the rows we want
+
+                print(data_type+ " data has length " +str(subset_ml_ready_df.shape[0]))
+
+                # Here we do not reset the index so we can later check that the dataset does not overlap
+
+                subset_ml_ready_df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=date_folder_file_name+data_type+ "_" +clean_moniker+ "_descriptiveFeatures_fullDataset.gzip")
 
     return total_records_count, records_removed_count
 
-country_code = "US"
-country_name = "United States"
+home_folder = r"/home/jambrown/"  # TODO change this name for your file structure
+country_name = "United States" # TODO change country code as required
+country_code = "US" # TODO update country code as required
+
+home_file_name = home_folder +"CP_Analysis/"
 
 training_split_fraction = 0.8
 validation_split_fraction = 0.1
 testing_split_fraction = 1 - training_split_fraction - validation_split_fraction
 
-home_file_name = r"/home/jambrown/CP_Analysis/"
 intermediary_file_name = home_file_name +country_code+ "/ML_ready_dataframes_V2/"
-date_filename = "all_months_combined/"
-ml_ready_data_file_name = intermediary_file_name +date_filename
-os.mkdir(ml_ready_data_file_name)
 aggregate_file_name = home_file_name +country_code+ "/raw_dataframe.gzip"
 
-GFWatch_table_filename = r'/home/jambrown/CP_Analysis/gfwatch_censored_domains.csv'
 AS_count_table_filename = home_file_name + "max_asn_aggregate.gzip"
 
 AS_count_df = pd.read_parquet(path=AS_count_table_filename, engine='pyarrow')
@@ -272,16 +299,14 @@ original_with_newColumn_df = original_with_newColumn_df.reset_index(drop=True) #
 
 # Create clean datasets
 total_records_count, records_removed_count \
-    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, save_filename=ml_ready_data_file_name)
+    = create_ML_ready_data(original_with_newColumn_df, AS_count_df, save_filename=intermediary_file_name)
 
-print("Data total probes: " +str(total_records_count), flush=True)
-print("Impure probes removed: " +str(records_removed_count), flush=True)
 print("Program Complete")
 
 # # Create clean training dataset
 # total_records_count, records_removed_count \
 #     = create_ML_ready_data(original_with_newColumn_df, AS_count_df, clean_only=True,
-#                            index_list=training_index_list, save_filename=ml_ready_data_file_name, data_type="TRAINING")
+#                           index_list=training_index_list, save_filename=ml_ready_data_file_name, data_type="TRAINING")
 #
 # print("Training data (clean) total probes: " +str(total_records_count), flush=True)
 # print("Training data (clean) probes removed: " +str(records_removed_count), flush=True)

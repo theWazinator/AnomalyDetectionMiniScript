@@ -7,14 +7,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn import metrics
-import xgboost as xgb
+from sklearn.linear_model import SGDOneClassSVM
 import time
-from multiprocessing import Process
 import os
-from ML_Harness_Helper_Methods import *
+from ml_harness_helper_methods import *
+from joblib import dump
 import shap
 
-def get_local_statistics_df(dvalid, prediction_list, truth_list, model, save_file):
+def get_local_statistics_df(test_df, prediction_list, truth_list, model, save_file, anomaly_bool):
 
     accuracy = metrics.accuracy_score(truth_list, prediction_list)
     f1_score = metrics.f1_score(truth_list, prediction_list)
@@ -42,14 +42,14 @@ def get_local_statistics_df(dvalid, prediction_list, truth_list, model, save_fil
 
     # Create AUC and precision/recall curves
     auc = -1
-    if (1 in truth_list): # The AUC cannot be calculated unless there are positives in the truth column
+    if anomaly_bool == False and (1 in truth_list): # The AUC cannot be calculated unless there are positives in the truth column
                                                     # The AUC also cannot be calculated when we are using the Presumed_Censored column = 0 because TPR is constant (i.e. 0)
-        # TODO ensure this works with XGBoost models
-        fpr_list, tpr_list, _ = metrics.roc_curve(truth_list, model.predict(dvalid), pos_label=1)
-        roc_display = metrics.RocCurveDisplay(fpr=fpr_list, tpr=tpr_list)
-        auc = metrics.roc_auc_score(truth_list, model.predict(dvalid))
 
-        prec, recall, _ = metrics.precision_recall_curve(truth_list, round_list(model.predict(dvalid)), pos_label=1)
+        fpr_list, tpr_list, _ = metrics.roc_curve(truth_list, model.decision_function(test_df), pos_label=1)
+        roc_display = metrics.RocCurveDisplay(fpr=fpr_list, tpr=tpr_list)
+        auc = metrics.roc_auc_score(truth_list, model.decision_function(test_df))
+
+        prec, recall, _ = metrics.precision_recall_curve(truth_list, model.decision_function(test_df), pos_label=1)
         pr_display = metrics.PrecisionRecallDisplay(precision=prec, recall=recall)
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
@@ -57,7 +57,10 @@ def get_local_statistics_df(dvalid, prediction_list, truth_list, model, save_fil
         pr_display.plot(ax=ax2)
         plt.savefig(fname=save_file+r'curves.png')
 
-    suffix = "_New_Model"
+    if anomaly_bool == True:
+        suffix = "_CP_Model"
+    else:
+        suffix = "_New_Model"
 
     df_dict = {
         'Accuracy'+suffix: accuracy,
@@ -73,97 +76,75 @@ def get_local_statistics_df(dvalid, prediction_list, truth_list, model, save_fil
 
     return df, auc
 
-def get_results(dvalid, validation_target_df, model, model_params, save_folder, t_num, time_elapsed):
+def get_results(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model, model_params, save_folder, t_num, time_elapsed):
 
-    predicted_results_list = round_list(model.predict(dvalid))
-    true_results_list = validation_target_df.to_numpy()
+    predicted_results_list = model.predict(validation_set_df.to_numpy())
+    true_results_list = validation_truth_df.to_numpy()
+    comparison_results_list = validation_comparison_df.to_numpy()
 
     if sklearn_bool == True:
 
         # If the model comes from scikit-learn, we need to convert the feature indicator into 0 for inlier and 1 for outlier
         predicted_results_list = convert_target_features(predicted_results_list)
 
-    assert(-1 not in predicted_results_list) # Ensure the above statement was executed correctly
-
-    # Get explanation values
-    explainer = shap.Explainer(model)
-    shap_values = explainer.shap_values(dvalid)
-
-    feature_names = dvalid.feature_names
-    importance_dict = {}
-
-    for index in range(0, len(shap_values[0])):
-
-        mean_absolute_value = np.mean(np.abs(shap_values[:][index]))
-        importance_dict[feature_names[index]] = mean_absolute_value
-
-    sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
-    sorted_num_list = sorted(importance_dict.values(), reverse=True)
-
-    printout_dict = {"Features": sorted_features_list, "Importance": sorted_num_list}
-
-    printout_df = pd.DataFrame.from_dict(printout_dict)
-
-    printout_df.to_csv(path_or_buf=(save_folder + r"feature_importances.csv"), index=False)
-
     # Create the column for time elapsed
 
+    # # Get explanation values
+    # explainer = shap.Explainer(model)
+    # shap_values = explainer(validation_set_df.to_numpy()).shap_values()
+    #
+    # feature_names = list(validation_set_df.columns)
+    # importance_dict = {}
+    #
+    # for index in range(0, len(shap_values[0])):
+    #
+    #     mean_absolute_value = np.mean(np.abs(shap_values[:][index]))
+    #     importance_dict[feature_names[index]] = mean_absolute_value
+    #
+    # sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
+    # sorted_num_list = sorted(importance_dict.values(), reverse=True)
+    #
+    # printout_dict = {"Features": sorted_features_list, "Importance": sorted_num_list}
+    #
+    # printout_df = pd.DataFrame.from_dict(printout_dict)
+    #
+    # printout_df.to_csv(path_or_buf=(save_folder + r"feature_importances.csv"), index=False)
+
     # Create the columns in the dataframe associated with the model prediction
-    local_statistics_prediction_df, auc_prediction = get_local_statistics_df(dvalid, predicted_results_list, true_results_list, model, save_folder)
+    local_statistics_prediction_df, auc_prediction = get_local_statistics_df(validation_set_df, predicted_results_list, true_results_list, model, save_folder, validation_anomaly)
+    # Create the columns in the dataframe associated with the Censored Planet Anomaly prediction
+    local_statistics_comparison_df, _ = get_local_statistics_df(validation_set_df, comparison_results_list, true_results_list, model, save_folder, comparison_anomaly)
     # Create the columns in the dataframe from the model parameters
     local_statistics_parameters_df = pd.DataFrame.from_dict(dict_to_key_value_list(model_params))
     # Create the columns with the elapsed time and the AUC
     prefix_dict = {'Model Name': model_name, 'Version': version, 'Model Set': t_num, 'Model Run-Time': time_elapsed, 'AUC': auc_prediction}
     prefix_df = pd.DataFrame.from_dict(dict_to_key_value_list(prefix_dict))
 
-    partial_df_list = [prefix_df, local_statistics_prediction_df, local_statistics_parameters_df]
+    partial_df_list = [prefix_df, local_statistics_prediction_df, local_statistics_comparison_df, local_statistics_parameters_df]
 
     local_statistics_complete_df = pd.concat(partial_df_list, ignore_index=True, axis=1) # Concatenate the columns
 
     return local_statistics_complete_df
 
-def run_ml_model(training_descriptive_df, training_target_df, validation_descriptive_df, validation_target_df, model_params, save_folder, t_num):
+def run_ml_model(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model_params, save_folder, t_num):
 
-    print("Begin training model T = " +str(t_num), flush=True)
+    print("Begin training model T = " +str(t_num))
     begin_time = time.time()
-    dtrain = xgb.DMatrix(training_descriptive_df, label=training_target_df, feature_names=list(training_descriptive_df.columns))
-    dvalid = xgb.DMatrix(validation_descriptive_df, label=validation_target_df, feature_names=list(validation_descriptive_df.columns))
-    evals = [(dtrain, 'train') , (dvalid, 'valid')]
-    model = xgb.train(model_params, dtrain, num_boost_round=10, evals=evals) # TODO input XGboost model
+    clf = SGDOneClassSVM(**model_params)
+    clf.fit(training_set_df)
     time_elapsed = time.time() - begin_time
-    print("End training model T= " +str(t_num), flush=True)
-    print("Time Elapsed: " +str(time_elapsed)+ " seconds.", flush=True)
-    model.save_model(save_folder +'model')
+    print("End training model T= " +str(t_num))
+    print("Time Elapsed: " +str(time_elapsed)+ " seconds.")
+    dump(clf, save_folder +'model.joblib')
 
-    print("Begin validating results for T= " + str(t_num), flush=True)
+    ("Begin validating results for T= " + str(t_num))
 
-    results_df = get_results(dvalid, validation_target_df, model, model_params, save_folder, t_num, time_elapsed)
+    results_df = get_results(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly,
+                             comparison_anomaly, clf, model_params, save_folder, t_num, time_elapsed)
 
     results_df.to_csv(save_folder +r"local_stats.csv", index=False)
 
-    print("Finished validating and saving results for T= " +str(t_num), flush=True)
-
-# Use AUC for evaluation as opposed to curve (need to change disable_default_eval_metric and eval_metric)
-
-model_params = {'nthread': 20,
-            'predictor': 'cpu_predictor',
-            'verbosity': 1,
-            'booster': 'gbtree',
-            'scale_pos_weight': None, # Is this being used? Rebalance dataset to 50-50 if unsure
-            'disable_default_eval_metric': False,
-            'eta': 0.3,
-            'gamma': 0,
-            'max_depth': 7,
-            'min_child_weight': 0.8,
-            'max_delta_step': 0,
-            'subsample': 1,
-            'colsample_bytree': 1,
-            'lambda': 1,
-            'alpha': 0,
-            'tree_method': 'hist', # Try approx as well
-            'objective': 'binary:logistic', # Try binary logistic if this does not work
-            'eval_metric': 'error',
-}
+    ("Finished validating and saving results for T= " +str(t_num))
 
 def month_to_month_year(month):
 
@@ -188,28 +169,44 @@ def month_to_month_year(month):
     if month == 13:
         return 1, 2022
 
-model_name = "XGBOOST"
-version = "Satellite_Timing_Experiments"
-version_filename = r"/home/jambrown/CP_Analysis/ML_Results/XGBOOST/V" +str(version)+ "/"
-sklearn_bool = False
+model_params = { #TODO change parameters as required
+            'nu': 0.05,
+            'fit_intercept': True,
+            'max_iter': 1000,
+            'tol': 0.001,
+            'shuffle': True,
+            'verbose': 1,
+            'random_state': 23452345,
+            'learning_rate': 'optimal',
+            'eta0': 0.0,
+            'power_t': 0.5,
+            'warm_start': False,
+            'average': False,
+}
+
+home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
+country_code = "CN"  # TODO change country code as required
+country_name = "China"  # TODO change country name as required
+
+version = "GFWatch_Timing_Experiments"
+home_file_name = home_folder_name +"CP_Analysis/"
+version_filename = home_file_name +r"ML_Results/OCSVM_SGD/V" +str(version)+ "/"
+
+model_name = "OCSVM_SGD_skl"
+sklearn_bool = True
 os.mkdir(version_filename)
 
 print("Begin machine learning harness")
 
-home_file_name = r"/home/jambrown/CP_Analysis/"
-
 t_name_list = []
 
-for train_month_count in [1]: # TODO add up to 6
+for train_month_count in [1, 2, 3, 4, 5, 6]:
 
     for starting_train_month in range(7, 14-train_month_count):
 
         train_month_range = np.arange(starting_train_month, starting_train_month+train_month_count)
 
         for test_month in range(train_month_range[-1]+1, 14):
-
-            country_code = "CN"
-            country_name = "China"
 
             t_name = "Training_" +str(train_month_range) +"_Test_"+ str(test_month)
             t_name_list.append(t_name)
@@ -227,25 +224,30 @@ for train_month_count in [1]: # TODO add up to 6
 
                 og_train_month, og_train_year = month_to_month_year(training_month)
 
-                training_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_train_month)+ "_" +str(og_train_year)+ "/TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip"
+                training_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_train_month)+ "_" +str(og_train_year)+ "/TRAINING_Clean_descriptiveFeatures_fullDataset.gzip"
                 partial_descriptive_df = pd.read_parquet(path=training_descriptive_file_name, engine='pyarrow')
                 training_descriptive_df_list.append(partial_descriptive_df)
 
-                training_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" + str(og_train_month) + "_" + str(og_train_year) + "/TRAINING_Mixed_targetFeature_anomaly.csv"
+                training_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" + str(og_train_month) + "_" + str(og_train_year) + "/TRAINING_Clean_targetFeature_GFWatch_Censored.csv"
                 partial_target_df = pd.read_csv(training_target_file_name)
                 training_target_df_list.append(partial_target_df)
 
             training_descriptive_df = pd.concat(training_descriptive_df_list, ignore_index=True, axis=0)
+            training_descriptive_df = training_descriptive_df
+
             training_target_df = pd.concat(training_target_df_list, ignore_index=True, axis=0)
+            training_target_df = training_target_df
 
             # Get target df
             og_test_month, og_test_year = month_to_month_year(test_month)
             test_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_descriptiveFeatures_fullDataset.gzip"
-            test_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_anomaly.csv"
+            test_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_GFWatch_Censored.csv"
+            test_comparison_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_anomaly.csv"
 
             test_descriptive_df = pd.read_parquet(path=test_descriptive_file_name, engine='pyarrow')
 
             test_target_df = pd.read_csv(test_target_file_name)
+            test_comparison_df = pd.read_csv(test_comparison_file_name)
 
             training_samples = training_descriptive_df.shape[0]
 
@@ -259,9 +261,7 @@ for train_month_count in [1]: # TODO add up to 6
 
             os.mkdir(save_folder)
 
-            model_params['scale_pos_weight'] = (training_samples - sum(np.squeeze(training_target_df.to_numpy())))/sum(np.squeeze(training_target_df.to_numpy()))
-
-            run_ml_model(training_descriptive_df, training_target_df, test_descriptive_df, test_target_df,  model_params, save_folder, t_name)
+            run_ml_model(training_descriptive_df, test_descriptive_df, test_target_df, test_comparison_df, False, True, model_params, save_folder, t_name)
 
 # Create csv containing all pertinent information about the models, their parameters, and the results
 partial_df_list = []

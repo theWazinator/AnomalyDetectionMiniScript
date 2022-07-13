@@ -8,23 +8,24 @@ import pandas as pd
 from sklearn import metrics
 from sklearn.svm import OneClassSVM
 import time
-from multiprocessing import Manager, Process
+from multiprocessing import Process
 import os
-from joblib import dump, load
-from ML_Harness_Helper_Methods import *
+from joblib import dump
+from ml_harness_helper_methods import *
 
+home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
+training_samples = 7000 # TODO change training sample count as required
 
 model_name = "OCSVM_OG_skl"
 version = 1
-version_filename = r"/home/jambrown/CP_Analysis/ML_Results/OCSVM_OG/V" +str(version)+ "/"
+version_filename = home_folder_name+r"CP_Analysis/ML_Results/OCSVM_OG/V" +str(version)+ "/"
 sklearn_bool = True
-model_set_list = [1, 2, 3, 4] # TODO change back
-training_samples = 7000
+model_set_list = [1, 2, 3, 4]
 validation_samples = int(training_samples)
 testing_samples = int(training_samples)
 os.mkdir(version_filename)
 
-params_1 = {'kernel': 'rbf',
+params_1 = {'kernel': 'rbf', # TODO change params as required
             'degree': 3,
             'gamma': 'scale',
             'coef0': 0,
@@ -103,7 +104,6 @@ def get_local_statistics_df(test_df, prediction_list, truth_list, model, save_fi
     if anomaly_bool == False and (1 in truth_list): # The AUC cannot be calculated unless there are positives in the truth column
                                                     # The AUC also cannot be calculated when we are using the Presumed_Censored column = 0 because TPR is constant (i.e. 0)
 
-        # TODO ensure this works with Pyod models
         fpr_list, tpr_list, _ = metrics.roc_curve(truth_list, model.predict_proba(test_df), pos_label=1)
         roc_display = metrics.RocCurveDisplay(fpr=fpr_list, tpr=tpr_list)
         auc = metrics.roc_auc_score(truth_list, model.decision_function(test_df))
@@ -186,7 +186,7 @@ def run_ml_model(training_set_df, validation_set_df, validation_truth_df, valida
 
 print("Begin machine learning harness")
 
-home_file_name = r"/home/jambrown/CP_Analysis/"
+home_file_name = home_folder_name+ r"CP_Analysis/"
 ps = list()
 for model_set in model_set_list:
 

@@ -1,7 +1,7 @@
 import os.path
 import pandas as pd
 import datetime as dt
-from methods import *
+from dataframe_processing_helper_methods import *
 import random
 import copy
 import pickle

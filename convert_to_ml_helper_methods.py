@@ -1,4 +1,3 @@
-import joblib
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -109,8 +108,6 @@ def create_ML_features(old_df):
     old_df = old_df.loc[:, columns_to_keep] # drop unwanted columns
 
     df = old_df.copy()
-
-    # TODO reindex and/or load columns from df from scratch
 
     # Create new boolean columns to indicate more IPs
     row_count = df.shape[0]

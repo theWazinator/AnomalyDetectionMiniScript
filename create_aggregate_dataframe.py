@@ -1,23 +1,25 @@
 import os
 import pandas as pd
 
-cur_country_name = "China"
-cur_country_code = "CN"
-home_file_name = r"/home/jambrown/CP_Analysis/"
-cp_downloads_zipped_file_name = r"/home/jambrown/CP_Downloads/"
+cur_country_name = "United States" # TODO enter country name here
+cur_country_code = "US" # TODO enter country code here
+home_folder = r"/home/jambrown/" # TODO change this name for your file structure
+
+home_file_name = home_folder + r"CP_Analysis/"
+cp_downloads_zipped_file_name = home_folder + r"CP_Downloads/"
 
 # Create Country-specific file directory
-country_file_name = home_file_name + cur_country_code + r'/'
+country_file_name = home_file_name +cur_country_code+ r'/'
 os.mkdir(country_file_name)
 
-partial_aggregate_dataframes_file_name = country_file_name + r"partial_aggregate_dataframes/"
+partial_aggregate_dataframes_file_name = country_file_name+ r"partial_aggregate_dataframes/"
 os.mkdir(partial_aggregate_dataframes_file_name)
 
 # Merge raw files into singular file for use
 print("Begin merging raw dataframes into a singular dataframe.", flush=True)
 
 list_of_zipped_cp_files = os.listdir(cp_downloads_zipped_file_name)
-list_of_zipped_cp_files.sort(reverse=True)  # Ensures most recent scans are processed first
+list_of_zipped_cp_files.sort(reverse=True) # Ensures most recent scans are processed first
 
 print("Input Vantage Point Files")
 
@@ -29,7 +31,7 @@ vp_list = vp_df['IP'].tolist()
 
 print(vp_list)
 
-print("Begin merging " + cur_country_name + " dataframes.", flush=True)
+print("Begin merging " +cur_country_name+ " dataframes.", flush=True)
 
 # # Create dataframe with all the files
 # # Start by reading an initial dataframe to obtain the column headers
@@ -37,12 +39,12 @@ print("Begin merging " + cur_country_name + " dataframes.", flush=True)
 # master_df = pd.DataFrame.from_records(data=df_0, nrows=1)
 # master_df.drop(labels=master_df.index[0:], inplace=True)
 
-# TODO note that we assume that the file names in the CP_Download folder are exactly the same as those in CP_Analysis
-# TODO daily scan folders should probably be placed in a separate file so that there names can be processed properly
+# note that we assume that the file names in the CP_Download folder are exactly the same as those in CP_Analysis
+# daily scan folders should probably be placed in a separate file so that there names can be processed properly
 for zipped_cp_file in list_of_zipped_cp_files:
 
     cp_scan_only_name = zipped_cp_file.split('.')[0]
-    print("Beginning to process file: " + str(cp_scan_only_name), flush=True)
+    print("Beginning to process file: " +str(cp_scan_only_name), flush=True)
 
     scan_base_file_name = home_file_name + cp_scan_only_name + r"/"
     other_docs_file_name = scan_base_file_name + r"other_docs/"
@@ -54,8 +56,8 @@ for zipped_cp_file in list_of_zipped_cp_files:
 
     # Concatenate dataframes and remove extra columns, selecting by country and vantage point
     for fileNumber in range(0, splitfile_count):
-        partial_df = pd.read_parquet(path=raw_dataframes_file_name + str(fileNumber) + "_raw_dataframe.gzip",
-                                     engine='pyarrow')
+
+        partial_df = pd.read_parquet(path=raw_dataframes_file_name + str(fileNumber) + "_raw_dataframe.gzip", engine='pyarrow')
 
         columns_to_keep = [
             'test_url',
@@ -134,18 +136,18 @@ for zipped_cp_file in list_of_zipped_cp_files:
 
         daily_dataframe_list.append(partial_df)
 
-        print("Partial df size: " + str(partial_df.shape[0]))
+        print("Partial df size: " +str(partial_df.shape[0]))
 
-        print("Finished merging file number " + str(fileNumber) + " of " + str(splitfile_count), flush=True)
+        print("Finished merging file number " + str(fileNumber) +" of " +str(splitfile_count), flush=True)
 
     daily_df = pd.concat(daily_dataframe_list, ignore_index=True, axis=0)
 
     daily_df.to_parquet(index=True, compression="gzip", engine='pyarrow',
-                        path=partial_aggregate_dataframes_file_name + cp_scan_only_name + "_partial_aggregate_dataframe.gzip")
+                          path=partial_aggregate_dataframes_file_name + cp_scan_only_name + "_partial_aggregate_dataframe.gzip")
 
     del daily_df
 
-    print("Finished merging the scan from day " + cp_scan_only_name)
+    print("Finished merging the scan from day " +cp_scan_only_name)
 
 # Concatenate dataframes and save
 
@@ -154,11 +156,10 @@ for zipped_cp_file in list_of_zipped_cp_files:
 master_dataframe_list = []
 
 for zipped_cp_file in list_of_zipped_cp_files:
+
     cp_scan_only_name = zipped_cp_file.split('.')[0]
 
-    partial_df = pd.read_parquet(
-        path=partial_aggregate_dataframes_file_name + cp_scan_only_name + "_partial_aggregate_dataframe.gzip",
-        engine='pyarrow')
+    partial_df = pd.read_parquet(path=partial_aggregate_dataframes_file_name + cp_scan_only_name + "_partial_aggregate_dataframe.gzip", engine='pyarrow')
 
     master_dataframe_list.append(partial_df)
 
@@ -171,8 +172,7 @@ master_df = master_df.sample(frac=1)
 master_df.reset_index(drop=True, inplace=True)
 
 # Save file
-# fastparquet must be used so that the categorical variables associated with integers (ex rcode) will also deserialize into categorical variables
-master_df.to_parquet(index=True, compression="gzip", engine='pyarrow', path=country_file_name + "raw_dataframe.gzip")
+master_df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=country_file_name + "raw_dataframe.gzip")
 
 print("End of merging " + cur_country_name + " dataframes.", flush=True)
 

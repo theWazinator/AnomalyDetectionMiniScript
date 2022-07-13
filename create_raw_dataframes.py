@@ -14,34 +14,21 @@
 #    c. Standard Scaler for that country's ML dataframe
 
 import os.path
-import pandas as pd
-import datetime as dt
-from methods import *
-import random
-import copy
-import pickle
-from sklearn.preprocessing import StandardScaler
+from dataframe_processing_helper_methods import *
 import shutil
 import tarfile
 
-# Get list of files in folder - TODO Change these names for your file structure
-cp_downloads_zipped_file_name = r"/home/jambrown/CP_Downloads/"
-home_file_name = r"/home/jambrown/CP_Analysis/"
-
-countries_to_select = ["United States", "China", "India", "Russia", "Turkey", "Iran"]
+# Get list of files in folder
+home_folder = r"/home/jambrown/" # TODO change this name for your file structure
+cp_downloads_zipped_file_name = home_folder + r"CP_Downloads/"
+home_file_name = home_folder + r"CP_Analysis/"
 
 max_vantagepoint_count_per_country = 15
-
-# country_raw_dataframe_filename = home_file_name + r'Country_Raw_Dataframes/'
-# os.mkdir(country_raw_dataframe_filename)
-#
-# country_ml_dataframe_filename = home_file_name + r'ML_Dataframes/'
-# os.mkdir(country_ml_dataframe_filename)
 
 list_of_zipped_cp_files = os.listdir(cp_downloads_zipped_file_name)
 list_of_zipped_cp_files.sort(reverse=True) # Ensures most recent scans are processed first
 
-list_of_zipped_cp_files = list_of_zipped_cp_files[9:14] # TODO change this line if you don't want to use all the dataframes
+list_of_zipped_cp_files = list_of_zipped_cp_files
 
 print("Begin creating raw dataframes from JSON file.", flush=True)
 
