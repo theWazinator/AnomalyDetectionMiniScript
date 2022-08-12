@@ -178,6 +178,8 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
                     pass # No presumption of censorship for other countries
 
+    # TODO add "all_months_combined" code here that saves all the months into one table (just use df)
+
     # Drop the columns
     df.drop(['anomaly'], axis=1)
 
@@ -239,6 +241,8 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
                 # Here we do not reset the index so we can later check that the dataset does not overlap
 
                 subset_ml_ready_df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=date_folder_file_name+data_type+ "_" +clean_moniker+ "_descriptiveFeatures_fullDataset.gzip")
+
+    # TODO add "all_months_combined" code here that saves all the months into one table (use ml_ready_df)
 
     return total_records_count, records_removed_count
 

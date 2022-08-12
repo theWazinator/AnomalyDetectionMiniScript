@@ -192,6 +192,8 @@ def create_ML_features(old_df):
     df['test_response_3_match_percentage'] = pd.Series(new_test_response_3_match_percentage)
     df['test_response_4_match_percentage'] = pd.Series(new_test_response_4_match_percentage)
 
+    # TODO save feature list (from df) here for use with feature importance aggregator
+
     # One-hot encoding of discrete variables, including booleans (be sure to remove old features)
 
     categorical_columns = [

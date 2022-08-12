@@ -12,6 +12,8 @@ from multiprocessing import Process
 import os
 from joblib import dump
 from ml_harness_helper_methods import *
+import numpy as np
+import shap
 
 home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
 training_samples = 100000 # TODO change training sample count as required
@@ -20,7 +22,7 @@ model_name = "OCSVM_SGD_skl"
 version = 12
 version_filename = home_folder_name + r"CP_Analysis/ML_Results/OCSVM_SGD/V" +str(version)+ "/"
 sklearn_bool = True
-model_set_list = [1, 2, 3, 4]
+model_set_list = [1] # TODO include 2, 3, 4, in model sets
 os.mkdir(version_filename)
 
 # TODO change params as required
@@ -154,7 +156,22 @@ def get_results(training_set_df, validation_set_df, validation_truth_df, validat
         # If the model comes from scikit-learn, we need to convert the feature indicator into 0 for inlier and 1 for outlier
         predicted_results_list = convert_target_features(predicted_results_list)
 
-    # Create the column for time elapsed
+    values = model.coef_
+
+    feature_names = list(validation_set_df.columns)
+    importance_dict = {}
+
+    for index in range(0, values):
+        importance_dict[feature_names[index]] = values[index]
+
+    sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
+    sorted_num_list = sorted(importance_dict.values(), reverse=True)
+
+    printout_dict = {"Features": sorted_features_list, "Importance": sorted_num_list}
+
+    printout_df = pd.DataFrame.from_dict(printout_dict)
+
+    printout_df.to_csv(path_or_buf=(save_folder + r"feature_importances.csv"), index=False)
 
     # # Get explanation values
     # explainer = shap.Explainer(model)

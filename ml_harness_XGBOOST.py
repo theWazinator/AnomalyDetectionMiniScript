@@ -22,7 +22,7 @@ model_name = "XGBOOST"
 version = 16
 version_filename = home_folder_name+r"CP_Analysis/ML_Results/XGBOOST/V" +str(version)+ "/"
 sklearn_bool = False
-model_set_list = [4]
+model_set_list = [1]
 validation_samples = int(training_samples/10)
 testing_samples = int(training_samples/10)
 os.mkdir(version_filename)

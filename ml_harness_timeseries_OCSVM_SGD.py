@@ -87,6 +87,25 @@ def get_results(training_set_df, validation_set_df, validation_truth_df, validat
         # If the model comes from scikit-learn, we need to convert the feature indicator into 0 for inlier and 1 for outlier
         predicted_results_list = convert_target_features(predicted_results_list)
 
+    values = model.coef_
+
+    feature_names = list(validation_set_df.columns)
+    importance_dict = {}
+
+    for index in range(0, values):
+        importance_dict[feature_names[index]] = values[index]
+
+    sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
+    sorted_num_list = sorted(importance_dict.values(), reverse=True)
+
+    printout_dict = {"Features": sorted_features_list, "Importance": sorted_num_list}
+
+    printout_df = pd.DataFrame.from_dict(printout_dict)
+
+    printout_df.to_csv(path_or_buf=(save_folder + r"feature_importances.csv"), index=False)
+
+
+
     # Create the column for time elapsed
 
     # # Get explanation values

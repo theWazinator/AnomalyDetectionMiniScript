@@ -22,7 +22,7 @@ model_name = "IFOREST_PyOD"
 version = 10
 version_filename = home_folder_name+ r"CP_Analysis/ML_Results/IFOREST/V" +str(version)+ "/"
 sklearn_bool = False
-model_set_list = [1, 2, 3, 4]
+model_set_list = [1] # TODO include 2, 3, 4, in model sets
 validation_samples = int(training_samples/10)
 testing_samples = int(training_samples/10)
 os.mkdir(version_filename)
