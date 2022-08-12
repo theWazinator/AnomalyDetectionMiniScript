@@ -61,3 +61,13 @@ def calculate_counts(prediction_list, truth_list):
     assert(sum([tp_count, tn_count, fp_count, fn_count]) == len(prediction_list))
 
     return tp_count, tn_count, fp_count, fn_count
+
+# TODO complete this function
+def remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df):
+
+    for df in [training_set_df, validation_set_df, validation_truth_df, validation_comparison_df]:
+
+        # remove the features from the df
+        print("Remove features here")
+
+    return training_set_df.copy(), validation_set_df.copy(), validation_truth_df.copy(), validation_comparison_df.copy()

@@ -323,6 +323,9 @@ for model_set in model_set_list:
 
     model_params['scale_pos_weight'] = (training_samples - sum(np.squeeze(training_target_df.to_numpy())))/sum(np.squeeze(training_target_df.to_numpy()))
 
+    training_set_df, validation_set_df, validation_truth_df, validation_comparison_df = \
+        remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df)
+
     p = Process(target=run_ml_model,
                 args=(training_descriptive_df, training_target_df, validation_descriptive_df,
                       validation_target_df,  model_params, save_folder, model_set))

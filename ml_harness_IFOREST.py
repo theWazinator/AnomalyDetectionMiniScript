@@ -329,6 +329,9 @@ for model_set in model_set_list:
 
     save_folder = version_filename + r"T" +str(model_set) + r"/"
 
+    training_set_df, validation_set_df, validation_truth_df, validation_comparison_df = \
+        remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df)
+
     os.mkdir(save_folder)
 
     p = Process(target=run_ml_model,

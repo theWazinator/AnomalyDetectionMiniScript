@@ -261,6 +261,9 @@ for train_month_count in [1, 2, 3, 4, 5, 6]:
 
             os.mkdir(save_folder)
 
+            training_set_df, validation_set_df, validation_truth_df, validation_comparison_df = \
+                remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df)
+
             model_params['scale_pos_weight'] = (training_samples - sum(np.squeeze(training_target_df.to_numpy())))/sum(np.squeeze(training_target_df.to_numpy()))
 
             run_ml_model(training_descriptive_df, training_target_df, test_descriptive_df, test_target_df,  model_params, save_folder, t_name)

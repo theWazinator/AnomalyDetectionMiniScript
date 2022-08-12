@@ -106,7 +106,7 @@ def get_local_statistics_df(test_df, prediction_list, truth_list, model, save_fi
     if anomaly_bool == False and (1 in truth_list): # The AUC cannot be calculated unless there are positives in the truth column
                                                     # The AUC also cannot be calculated when we are using the Presumed_Censored column = 0 because TPR is constant (i.e. 0)
 
-        fpr_list, tpr_list, _ = metrics.roc_curve(truth_list, model.predict_proba(test_df), pos_label=1)
+        fpr_list, tpr_list, _ = metrics.roc_curve(truth_list, model.decision_function(test_df), pos_label=1)
         roc_display = metrics.RocCurveDisplay(fpr=fpr_list, tpr=tpr_list)
         auc = metrics.roc_auc_score(truth_list, model.decision_function(test_df))
 
@@ -158,7 +158,7 @@ def get_results(validation_set_df, validation_truth_df, validation_comparison_df
         feature_names = list(validation_set_df.columns)
         importance_dict = {}
 
-        for index in range(0, values):
+        for index in range(0, len(values)):
             importance_dict[feature_names[index]] = values[index]
 
         sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
@@ -288,6 +288,9 @@ for model_set in model_set_list:
     validation_truth_df = pd.read_csv(validation_truth_file_name).iloc[0:validation_samples]
 
     validation_comparison_df = pd.read_csv(comparison_file_name).iloc[0:validation_samples]
+
+    training_set_df, validation_set_df, validation_truth_df, validation_comparison_df = \
+        remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df)
 
     save_folder = version_filename + r"T" +str(model_set) + r"/"
 

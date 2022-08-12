@@ -178,6 +178,8 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
                     pass # No presumption of censorship for other countries
 
+                # TODO create matching table with 'test_url', 'vantage_point', 'batch_datetime', GFWatch Censored, CP Censored
+
     # TODO add "all_months_combined" code here that saves all the months into one table (just use df)
 
     # Drop the columns

@@ -92,7 +92,7 @@ def get_results(training_set_df, validation_set_df, validation_truth_df, validat
     feature_names = list(validation_set_df.columns)
     importance_dict = {}
 
-    for index in range(0, values):
+    for index in range(0, len(values)):
         importance_dict[feature_names[index]] = values[index]
 
     sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
@@ -275,6 +275,9 @@ for train_month_count in [1, 2, 3, 4, 5, 6]:
             contamination = sum(np.squeeze(training_target_df.to_numpy()))/training_samples
 
             print("Percent contamination: " +str(contamination))
+
+            training_set_df, validation_set_df, validation_truth_df, validation_comparison_df = \
+                remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df)
 
             save_folder = version_filename + r"T" +str(t_name) + r"/"
 
