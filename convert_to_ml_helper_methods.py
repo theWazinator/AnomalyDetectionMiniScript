@@ -38,7 +38,7 @@ def get_clean_indices(dirty_indices, total_records_count):
 
     return clean_indices
 
-def create_ML_features(old_df):
+def create_ML_features(old_df, save_filename):
 
     columns_to_keep = [
         'average_matchrate',
@@ -104,6 +104,10 @@ def create_ML_features(old_df):
         'test_response_4_match_percentage',
         'test_response_4_asnum',
     ]
+
+    test_url = old_df['test_url']
+    vantage_point = old_df['vantage_point']
+    batch_datetime = old_df['batch_datetime']
 
     old_df = old_df.loc[:, columns_to_keep] # drop unwanted columns
 
@@ -192,7 +196,20 @@ def create_ML_features(old_df):
     df['test_response_3_match_percentage'] = pd.Series(new_test_response_3_match_percentage)
     df['test_response_4_match_percentage'] = pd.Series(new_test_response_4_match_percentage)
 
-    # TODO save feature list (from df) here for use with feature importance aggregator
+    # Save complete dataframe with human-readable features
+    df_to_save = df.copy()
+    df_to_save['test_url'] = test_url
+    df_to_save['vantage_point'] = vantage_point
+    df_to_save['batch_datetime'] = batch_datetime
+
+    df_to_save.to_parquet(index=True, compression="gzip", engine='pyarrow',  path= save_filename +"full_dataset_with_human-readable_features.gzip")
+
+    # Save feature list (from df) here
+
+    column_list = df.columns.values.tolist()
+    column_list_dict = {'all_aggregate_feature_names': column_list}
+    column_names_df = pd.DataFrame.from_dict(column_list_dict)
+    column_names_df.to_csv(save_filename +"all_aggregate_feature_names.csv")
 
     # One-hot encoding of discrete variables, including booleans (be sure to remove old features)
 

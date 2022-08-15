@@ -219,7 +219,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
@@ -235,7 +235,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
@@ -251,7 +251,7 @@ for model_set in model_set_list:
         country_code = "US"
         country_name = "United States"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_descriptiveFeatures_fullDataset.gzip'
@@ -268,7 +268,7 @@ for model_set in model_set_list:
         country_code = "US"
         country_name = "United States"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'

@@ -158,6 +158,8 @@ def get_results(validation_set_df, validation_truth_df, validation_comparison_df
 
     assert(-1 not in predicted_results_list) # Ensure the above statement was executed correctly
 
+    # TODO (must copy to all ml_harnesses) append predicted_results_list to records table and save
+
     # Get explanation values
     exp = shap.TreeExplainer(model)  # Explainer
     shap_values = exp.shap_values(validation_set_df.to_numpy())  # Calculate SHAP values
@@ -227,7 +229,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
@@ -244,7 +246,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
@@ -261,7 +263,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
@@ -278,7 +280,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
@@ -295,7 +297,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'

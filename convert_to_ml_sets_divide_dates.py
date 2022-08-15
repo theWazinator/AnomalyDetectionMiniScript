@@ -3,6 +3,7 @@
  All invalid records are dropped and two copies of the validation and test sets are made
  One copy has both the unclean and clean (presumed uncensored) data, and the other only the clean data
  """
+import pandas as pd
 
 from convert_to_ml_helper_methods import *
 from joblib import dump
@@ -161,26 +162,119 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
                 print(data_type+ " data has length " +str(subset_df.shape[0]))
 
-                subset_df['anomaly'].astype(int).to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_anomaly.csv", \
+                cp_censored_column = subset_df['anomaly']
+
+                cp_censored_column.astype(int).to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_anomaly.csv", \
                     index=False) # Converts True and False to 1 and 0
 
                 if country_code == 'CN':
 
-                    subset_df['GFWatch_Censored'].to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_GFWatch_Censored.csv", \
+                    groundtruth_censored_column = subset_df['GFWatch_Censored']
+
+                    groundtruth_censored_column.to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_GFWatch_Censored.csv", \
                             index=False)
 
                 elif country_code == "US":
 
-                    subset_df['Presumed_Censored'].to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_Presumed_Censored.csv", \
+                    groundtruth_censored_column = subset_df['Presumed_Censored']
+
+                    groundtruth_censored_column.to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_Presumed_Censored.csv", \
                         index=False)
 
                 else:
 
-                    pass # No presumption of censorship for other countries
+                    # No presumption of censorship for other countries
 
-                # TODO create matching table with 'test_url', 'vantage_point', 'batch_datetime', GFWatch Censored, CP Censored
+                    pass
 
-    # TODO add "all_months_combined" code here that saves all the months into one table (just use df)
+
+                # Create matching table with 'test_url', 'vantage_point', 'batch_datetime', all features from VantagePoint_CSV_List_V2.csv, GroundTruth Censored, CP Censored
+
+                record_table = subset_df[['test_url', 'vantage_point', 'batch_datetime']]
+                record_table['groundtruth_censored'] = groundtruth_censored_column.tolist()
+                record_table['cp_censored'] = cp_censored_column.tolist()
+
+                vantage_point_table = pd.read_csv(r"VantagePoint_CSV_List_V2.csv")
+
+                record_table = record_table.merge(right=vantage_point_table, how='left', left_on='vantage_point', right_on="  IP")
+
+                record_table.to_csv(
+                    path_or_buf=date_folder_file_name + data_type + "_" + clean_moniker + "_record_summary_table.csv", \
+                    index=False)
+
+
+    # Add "all_months_combined" code here that saves all the months into one table (just use df)
+
+    date_folder_file_name = save_filename + r"all_months_combined/"
+    os.mkdir(date_folder_file_name)
+
+    print("all_months_combined total probes: " + str(df.shape[0]), flush=True)
+
+    # Save the truth columns for comparison
+    for clean_moniker in ["Mixed", "Clean"]:
+
+        if clean_moniker == "Mixed":
+
+            index_dict = mixed_index_dict
+            print("Mixed")
+
+        elif clean_moniker == "Clean":
+
+            index_dict = clean_index_dict
+            print("Clean")
+
+        for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
+
+            index_list = index_dict[data_type]
+
+            subset_df = df.loc[intersection(index_list, list(df.index.values))] # Select only the rows we want
+
+            print(data_type+ " data has length " +str(subset_df.shape[0]))
+
+            cp_censored_column = subset_df['anomaly']
+
+            cp_censored_column.astype(int).to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_anomaly.csv", \
+                index=False) # Converts True and False to 1 and 0
+
+            if country_code == 'CN':
+
+                groundtruth_censored_column = subset_df['GFWatch_Censored']
+
+                groundtruth_censored_column.to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_GFWatch_Censored.csv", \
+                        index=False)
+
+            elif country_code == "US":
+
+                groundtruth_censored_column = subset_df['Presumed_Censored']
+
+                groundtruth_censored_column.to_csv(path_or_buf=date_folder_file_name+data_type+ "_" +clean_moniker+ "_targetFeature_Presumed_Censored.csv", \
+                    index=False)
+
+            else:
+
+                # No presumption of censorship for other countries
+
+                pass
+
+            # create matching table with 'test_url', 'vantage_point', 'batch_datetime', all features from VantagePoint_CSV_List_V2.csv, GroundTruth Censored, CP Censored
+
+            record_table = subset_df[['test_url', 'vantage_point', 'batch_datetime']]
+
+            vantage_point_table = pd.read_csv(r"VantagePoint_CSV_List_V2.csv")
+
+            record_table = record_table.merge(right=vantage_point_table, how='left', left_on='vantage_point', right_on="  IP")
+
+            record_table['cp_censored'] = cp_censored_column.tolist()
+            record_table['groundtruth_censored'] = groundtruth_censored_column.tolist()
+
+            # These three will be filled in after machine learning inference
+            record_table['predicted_censored_boolean'] = pd.Series(np.full(shape=record_table.shape[0], dtype=int, fill_value=False))
+            record_table['predicted_censored_value'] = pd.Series(np.full(shape=record_table.shape[0], dtype=np.float64(), fill_value=0))
+            record_table['predicted_censored_threshold'] = pd.Series(np.full(shape=record_table.shape[0], dtype=np.float64(), fill_value=0))
+
+            record_table.to_csv(
+                path_or_buf=date_folder_file_name + data_type + "_" + clean_moniker + "_record_summary_table.csv", \
+                index=False)
 
     # Drop the columns
     df.drop(['anomaly'], axis=1)
@@ -197,7 +291,7 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
         pass # No presumption of censorship for other countries
 
-    ml_ready_df, ohenc, scaler = create_ML_features(df.copy())
+    ml_ready_df, ohenc, scaler = create_ML_features(df.copy(), save_filename)
 
     # Save one-hot-encoder and scaler
 
@@ -244,7 +338,35 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
                 subset_ml_ready_df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=date_folder_file_name+data_type+ "_" +clean_moniker+ "_descriptiveFeatures_fullDataset.gzip")
 
-    # TODO add "all_months_combined" code here that saves all the months into one table (use ml_ready_df)
+    # add "all_months_combined" code here that saves all the months into one table
+
+    date_folder_file_name = save_filename + r"all_months_combined/"
+
+    print("all_months_combined total probes: " + str(ml_ready_df.shape[0]), flush=True)
+
+    for clean_moniker in ["Mixed", "Clean"]:
+
+        if clean_moniker == "Mixed":
+
+            index_dict = mixed_index_dict
+            print("Mixed")
+
+        elif clean_moniker == "Clean":
+
+            index_dict = clean_index_dict
+            print("Clean")
+
+        for data_type in ["TRAINING", "VALIDATION", "TESTING"]:
+
+            index_list = index_dict[data_type]
+
+            subset_ml_ready_df = ml_ready_df.loc[intersection(index_list, list(ml_ready_df.index.values))] # Select only the rows we want
+
+            print(data_type+ " data has length " +str(subset_ml_ready_df.shape[0]))
+
+            # Here we do not reset the index so we can later check that the dataset does not overlap
+
+            subset_ml_ready_df.to_parquet(index=True, compression="gzip", engine='pyarrow',  path=date_folder_file_name+data_type+ "_" +clean_moniker+ "_descriptiveFeatures_fullDataset.gzip")
 
     return total_records_count, records_removed_count
 
@@ -258,8 +380,10 @@ training_split_fraction = 0.8
 validation_split_fraction = 0.1
 testing_split_fraction = 1 - training_split_fraction - validation_split_fraction
 
-intermediary_file_name = home_file_name +country_code+ "/ML_ready_dataframes_V2/"
+intermediary_file_name = home_file_name +country_code+ "/ML_ready_dataframes_V3/"
 aggregate_file_name = home_file_name +country_code+ "/raw_dataframe.gzip"
+
+os.mkdir(intermediary_file_name)
 
 AS_count_table_filename = home_file_name + "max_asn_aggregate.gzip"
 

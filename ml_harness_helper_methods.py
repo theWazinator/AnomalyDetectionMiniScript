@@ -63,11 +63,13 @@ def calculate_counts(prediction_list, truth_list):
     return tp_count, tn_count, fp_count, fn_count
 
 # TODO complete this function
-def remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df):
+def remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, features_to_remove):
 
     for df in [training_set_df, validation_set_df, validation_truth_df, validation_comparison_df]:
 
         # remove the features from the df
         print("Remove features here")
+
+    # TODO add features_to_remove parameter to each ml_harness (can individually set it in model_set case switch)
 
     return training_set_df.copy(), validation_set_df.copy(), validation_truth_df.copy(), validation_comparison_df.copy()

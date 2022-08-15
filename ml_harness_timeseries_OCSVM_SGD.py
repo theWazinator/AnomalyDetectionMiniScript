@@ -243,11 +243,11 @@ for train_month_count in [1, 2, 3, 4, 5, 6]:
 
                 og_train_month, og_train_year = month_to_month_year(training_month)
 
-                training_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_train_month)+ "_" +str(og_train_year)+ "/TRAINING_Clean_descriptiveFeatures_fullDataset.gzip"
+                training_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" +str(og_train_month)+ "_" +str(og_train_year)+ "/TRAINING_Clean_descriptiveFeatures_fullDataset.gzip"
                 partial_descriptive_df = pd.read_parquet(path=training_descriptive_file_name, engine='pyarrow')
                 training_descriptive_df_list.append(partial_descriptive_df)
 
-                training_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" + str(og_train_month) + "_" + str(og_train_year) + "/TRAINING_Clean_targetFeature_GFWatch_Censored.csv"
+                training_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" + str(og_train_month) + "_" + str(og_train_year) + "/TRAINING_Clean_targetFeature_GFWatch_Censored.csv"
                 partial_target_df = pd.read_csv(training_target_file_name)
                 training_target_df_list.append(partial_target_df)
 
@@ -259,9 +259,9 @@ for train_month_count in [1, 2, 3, 4, 5, 6]:
 
             # Get target df
             og_test_month, og_test_year = month_to_month_year(test_month)
-            test_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_descriptiveFeatures_fullDataset.gzip"
-            test_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_GFWatch_Censored.csv"
-            test_comparison_file_name = home_file_name + country_code + "/ML_ready_dataframes_V2/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_anomaly.csv"
+            test_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_descriptiveFeatures_fullDataset.gzip"
+            test_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_GFWatch_Censored.csv"
+            test_comparison_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_anomaly.csv"
 
             test_descriptive_df = pd.read_parquet(path=test_descriptive_file_name, engine='pyarrow')
 
