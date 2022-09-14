@@ -64,15 +64,21 @@ def process_dataframe(df, censored_domains, dic_censored, save_filename, process
         time_ranges = []
         domain = get_domainname(df['test_url'].iloc[row_index])
         measurement_time = df['batch_datetime'].iloc[row_index]
+
         if check_domain_block(domain, censored_domains=censored_domains):
             time_ranges = censored_domains[domain]
-        else:
-            matched_domain = find_match_rule(domain, dic_censored=dic_censored)
-            if matched_domain != "":
-                blocking_rule = dic_censored[matched_domain]["blocking rule"]
 
-                if match_rule(domain, blocking_rule):
-                    time_ranges = dic_censored[matched_domain]["blocking time"]
+        matched_domain = find_match_rule(domain, dic_censored=dic_censored)
+
+        if matched_domain != "":
+            blocking_rule = dic_censored[matched_domain]["blocking rule"]
+
+            if match_rule(domain, blocking_rule):
+
+                for list_item in dic_censored[matched_domain]["blocking time"]:
+
+                    time_ranges.append(list_item)
+
         if len(time_ranges) > 0:
             dns_blocking.append(check_range_time(measurement_time, time_ranges))
         else:

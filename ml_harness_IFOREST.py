@@ -18,21 +18,22 @@ import shap
 home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
 training_samples = 250000 # TODO change training sample count as required
 
-model_name = "IFOREST_PyOD"
-version = 10
+model_name = "IFOREST_PyOD_new"
+version = 14
 version_filename = home_folder_name+ r"CP_Analysis/ML_Results/IFOREST/V" +str(version)+ "/"
 sklearn_bool = False
 model_set_list = [1] # TODO include 2, 3, 4, in model sets
+features_to_remove = [] # TODO list the (base) feature names that should not be included for training and inference
 validation_samples = int(training_samples/10)
 testing_samples = int(training_samples/10)
 os.mkdir(version_filename)
 
 # TODO change params as required
-params_1 = {'n_estimators': 100,
+params_1 = {'n_estimators': 300,
             'max_samples': 'auto',
             'contamination': None,
             'max_features': 1.0,
-            'bootstrap': False,
+            'bootstrap': True,
             'n_jobs': 5,
             'behaviour': 'old',
             'random_state': 12345678,
@@ -145,7 +146,7 @@ def get_local_statistics_df(test_df, prediction_list, truth_list, model, save_fi
 
     return df, auc
 
-def get_results(validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model, model_params, save_folder, t_num, time_elapsed):
+def get_results(validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model, model_params, save_folder, t_num, time_elapsed, validation_record_table_df, feature_set_filename):
 
     predicted_results_list = model.predict(validation_set_df.to_numpy())
     true_results_list = validation_truth_df.to_numpy()
@@ -158,7 +159,26 @@ def get_results(validation_set_df, validation_truth_df, validation_comparison_df
 
     assert(-1 not in predicted_results_list) # Ensure the above statement was executed correctly
 
-    # TODO (must copy to all ml_harnesses) append predicted_results_list to records table and save
+    # Append predicted_results_list to records table (with features drop) and save
+
+    feature_set_df = pd.read_parquet(path=feature_set_filename, engine='pyarrow')
+
+    feature_set_df = feature_set_df.drop(features_to_remove, axis=1)
+
+    base_feature_list = feature_set_df.columns.tolist() # used later to group features for feature importance
+    base_feature_list.remove('test_url') # remove features not used for feature importance aggregator
+    base_feature_list.remove('vantage_point')
+    base_feature_list.remove('batch_datetime')
+
+    validation_record_table_df = validation_record_table_df.drop(['  IP'], axis=1)
+
+    joined_df = validation_record_table_df.merge(right=feature_set_df, how="left", on=['test_url', 'vantage_point', 'batch_datetime'])
+
+    joined_df['predicted_censored_boolean'] = predicted_results_list
+    joined_df['predicted_censored_value'] = model.decision_function(validation_set_df.to_numpy()) # note - this changes with every model type
+    joined_df['predicted_censored_threshold'] = model.threshold_ # note - this changes with every model type
+
+    joined_df.to_csv(path_or_buf=(save_folder + r"data_with_predictions.csv"), index=False)
 
     # Get explanation values
     exp = shap.TreeExplainer(model)  # Explainer
@@ -173,12 +193,15 @@ def get_results(validation_set_df, validation_truth_df, validation_comparison_df
 
     sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
     sorted_num_list = sorted(importance_dict.values(), reverse=True)
-
+    sorted_num_list = np.array(sorted_num_list)/sum(sorted_num_list)  # normalize weights 0 to 1
     printout_dict = {"Features": sorted_features_list, "Importance": sorted_num_list}
 
     printout_df = pd.DataFrame.from_dict(printout_dict)
 
-    printout_df.to_csv(path_or_buf=(save_folder + r"feature_importances.csv"), index=False)
+    printout_df.to_csv(path_or_buf=(save_folder + r"individual_feature_importances.csv"), index=False)
+
+    aggregate_feature_importances_df = aggregate_feature_importances(base_feature_list, sorted_features_list, sorted_num_list)
+    aggregate_feature_importances_df.to_csv(path_or_buf=(save_folder + r"aggregate_feature_importances.csv"), index=False)
 
     # Create the column for time elapsed
 
@@ -198,7 +221,7 @@ def get_results(validation_set_df, validation_truth_df, validation_comparison_df
 
     return local_statistics_complete_df
 
-def run_ml_model(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model_params, save_folder, t_num):
+def run_ml_model(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model_params, save_folder, t_num, validation_record_table_df, feature_set_filename):
 
     print("Begin training model T = " +str(t_num), flush=True)
     begin_time = time.time()
@@ -212,7 +235,7 @@ def run_ml_model(training_set_df, validation_set_df, validation_truth_df, valida
     print("Begin validating results for T= " + str(t_num), flush=True)
 
     results_df = get_results(validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly,
-                             comparison_anomaly, clf, model_params, save_folder, t_num, time_elapsed)
+                             comparison_anomaly, clf, model_params, save_folder, t_num, time_elapsed, validation_record_table_df, feature_set_filename)
 
     results_df.to_csv(save_folder +r"local_stats.csv", index=False)
 
@@ -229,13 +252,16 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
-        validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
-        validation_truth_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_GFWatch_Censored.csv'
-        comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
+        validation_set_file_name = ml_ready_data_file_name +r'TESTING_Mixed_descriptiveFeatures_fullDataset.gzip'
+        validation_truth_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_GFWatch_Censored.csv'
+        comparison_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_anomaly.csv'
+        validation_record_table = ml_ready_data_file_name +r'TESTING_Mixed_record_summary_table.csv'
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+
         validation_anomaly = False
         comparison_anomaly = True
 
@@ -246,13 +272,17 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
         validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_descriptiveFeatures_fullDataset.gzip'
         validation_truth_file_name = ml_ready_data_file_name + r'VALIDATION_Clean_targetFeature_GFWatch_Censored.csv'
         comparison_file_name = ml_ready_data_file_name + r'VALIDATION_Clean_targetFeature_anomaly.csv'
+
+        validation_record_table = ml_ready_data_file_name +r'VALIDATION_Clean_record_summary_table.csv'
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+
         validation_anomaly = False
         comparison_anomaly = True
 
@@ -263,13 +293,17 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
         validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
         validation_truth_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
         comparison_file_name = ml_ready_data_file_name + r'VALIDATION_Mixed_targetFeature_GFWatch_Censored.csv'
+
+        validation_record_table = ml_ready_data_file_name +r'VALIDATION_Mixed_record_summary_table.csv'
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+
         validation_anomaly = True
         comparison_anomaly = False
 
@@ -280,13 +314,17 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
         validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
         validation_truth_file_name = ml_ready_data_file_name + r'VALIDATION_Mixed_targetFeature_GFWatch_Censored.csv'
         comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
+
+        validation_record_table = ml_ready_data_file_name +r'VALIDATION_Mixed_record_summary_table.csv'
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+
         validation_anomaly = False
         comparison_anomaly = True
 
@@ -297,13 +335,17 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
         validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_descriptiveFeatures_fullDataset.gzip'
         validation_truth_file_name = ml_ready_data_file_name + r'VALIDATION_Clean_targetFeature_GFWatch_Censored.csv'
         comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_targetFeature_anomaly.csv'
+
+        validation_record_table = ml_ready_data_file_name +r'VALIDATION_Clean_record_summary_table.csv'
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+
         validation_anomaly = False
         comparison_anomaly = True
 
@@ -321,6 +363,8 @@ for model_set in model_set_list:
 
     validation_comparison_df = pd.read_csv(comparison_file_name).iloc[0:validation_samples]
 
+    validation_record_table_df = pd.read_parquet(path=validation_record_table, engine='pyarrow').iloc[0:validation_samples]
+
     if model_set == 4 or model_set == 5: # Set the contamination to the smallest possible value
         model_params["contamination"] = 0.001
 
@@ -332,13 +376,13 @@ for model_set in model_set_list:
     save_folder = version_filename + r"T" +str(model_set) + r"/"
 
     training_set_df, validation_set_df, validation_truth_df, validation_comparison_df = \
-        remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df)
+        remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, features_to_remove)
 
     os.mkdir(save_folder)
 
     p = Process(target=run_ml_model,
                 args=(training_set_df, validation_set_df, validation_truth_df,
-                      validation_comparison_df, validation_anomaly, comparison_anomaly, model_params, save_folder, model_set))
+                      validation_comparison_df, validation_anomaly, comparison_anomaly, model_params, save_folder, model_set, validation_record_table_df, feature_set_filename))
     ps.append(p)
     p.start()
 

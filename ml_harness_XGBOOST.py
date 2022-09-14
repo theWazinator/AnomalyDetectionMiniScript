@@ -18,11 +18,12 @@ import shap
 home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
 training_samples = 500000 # TODO change training sample count as required
 
-model_name = "XGBOOST"
-version = 16
+model_name = "XGBOOST_new"
+version = 21
 version_filename = home_folder_name+r"CP_Analysis/ML_Results/XGBOOST/V" +str(version)+ "/"
 sklearn_bool = False
 model_set_list = [1]
+features_to_remove = [] # TODO list the (base) feature names that should not be included for training and inference
 validation_samples = int(training_samples/10)
 testing_samples = int(training_samples/10)
 os.mkdir(version_filename)
@@ -165,7 +166,7 @@ def get_local_statistics_df(dvalid, prediction_list, truth_list, model, save_fil
 
     return df, auc
 
-def get_results(dvalid, validation_target_df, model, model_params, save_folder, t_num, time_elapsed):
+def get_results(dvalid, validation_target_df, model, model_params, save_folder, t_num, time_elapsed, validation_record_table_df, feature_set_filename):
 
     predicted_results_list = round_list(model.predict(dvalid))
     true_results_list = validation_target_df.to_numpy()
@@ -176,6 +177,28 @@ def get_results(dvalid, validation_target_df, model, model_params, save_folder, 
         predicted_results_list = convert_target_features(predicted_results_list)
 
     assert(-1 not in predicted_results_list) # Ensure the above statement was executed correctly
+
+    # Append predicted_results_list to records table (with features drop) and save
+
+    feature_set_df = pd.read_parquet(path=feature_set_filename, engine='pyarrow')
+
+    feature_set_df = feature_set_df.drop(features_to_remove, axis=1)
+
+    base_feature_list = feature_set_df.columns.tolist()  # used later to group features for feature importance
+    base_feature_list.remove('test_url')  # remove features not used for feature importance aggregator
+    base_feature_list.remove('vantage_point')
+    base_feature_list.remove('batch_datetime')
+
+    validation_record_table_df = validation_record_table_df.drop(['  IP'], axis=1)
+
+    joined_df = validation_record_table_df.merge(right=feature_set_df, how="left",
+                                                 on=['test_url', 'vantage_point', 'batch_datetime'])
+
+    joined_df['predicted_censored_boolean'] = predicted_results_list
+    joined_df['predicted_censored_value'] = model.predict(dvalid)  # note - this changes with every model type
+    joined_df['predicted_censored_threshold'] = 0.5  # note - this changes with every model type
+
+    joined_df.to_csv(path_or_buf=(save_folder + r"data_with_predictions.csv"), index=False)
 
     # Get explanation values
     explainer = shap.Explainer(model)
@@ -191,12 +214,17 @@ def get_results(dvalid, validation_target_df, model, model_params, save_folder, 
 
     sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
     sorted_num_list = sorted(importance_dict.values(), reverse=True)
-
+    sorted_num_list = np.array(sorted_num_list)/sum(sorted_num_list)  # normalize weights 0 to 1
     printout_dict = {"Features": sorted_features_list, "Importance": sorted_num_list}
 
     printout_df = pd.DataFrame.from_dict(printout_dict)
 
     printout_df.to_csv(path_or_buf=(save_folder + r"feature_importances.csv"), index=False)
+
+    aggregate_feature_importances_df = aggregate_feature_importances(base_feature_list, sorted_features_list,
+                                                                     sorted_num_list)
+    aggregate_feature_importances_df.to_csv(path_or_buf=(save_folder + r"aggregate_feature_importances.csv"),
+                                            index=False)
 
     # Create the column for time elapsed
 
@@ -214,7 +242,7 @@ def get_results(dvalid, validation_target_df, model, model_params, save_folder, 
 
     return local_statistics_complete_df
 
-def run_ml_model(training_descriptive_df, training_target_df, validation_descriptive_df, validation_target_df, model_params, save_folder, t_num):
+def run_ml_model(training_descriptive_df, training_target_df, validation_descriptive_df, validation_target_df, model_params, save_folder, t_num, validation_record_table_df, feature_set_filename):
 
     print("Begin training model T = " +str(t_num), flush=True)
     begin_time = time.time()
@@ -229,7 +257,7 @@ def run_ml_model(training_descriptive_df, training_target_df, validation_descrip
 
     print("Begin validating results for T= " + str(t_num), flush=True)
 
-    results_df = get_results(dvalid, validation_target_df, model, model_params, save_folder, t_num, time_elapsed)
+    results_df = get_results(dvalid, validation_target_df, model, model_params, save_folder, t_num, time_elapsed, validation_record_table_df, feature_set_filename)
 
     results_df.to_csv(save_folder +r"local_stats.csv", index=False)
 
@@ -246,62 +274,65 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
 
         training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
-        validation_descriptive_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
-        validation_target_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_GFWatch_Censored.csv'
+        validation_descriptive_file_name = ml_ready_data_file_name +r'TESTING_Mixed_descriptiveFeatures_fullDataset.gzip'
+        validation_target_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_GFWatch_Censored.csv'
+
+        validation_record_table = ml_ready_data_file_name + r'TESTING_Mixed_record_summary_table.csv'
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
 
         model_params = params_1
 
-    elif model_set == 2:
-
-        country_code = "CN"
-        country_name = "China"
-
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
-
-        training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
-        training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_anomaly.csv'
-        validation_descriptive_file_name = ml_ready_data_file_name +r'TESTING_Mixed_descriptiveFeatures_fullDataset.gzip'
-        validation_target_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_anomaly.csv'
-
-        model_params = params_2
-
-    elif model_set == 3:
-
-        country_code = "US"
-        country_name = "United States"
-
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
-
-        training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
-        training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_anomaly.csv'
-        validation_descriptive_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
-        validation_target_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
-
-        model_params = params_3
-
-    elif model_set == 4:
-
-        country_code = "CN"
-        country_name = "China"
-
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
-
-        training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
-        training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
-
-        country_code = "US"
-        country_name = "United States"
-
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/all_months_combined/"
-
-        validation_descriptive_file_name = ml_ready_data_file_name +r'TESTING_Clean_descriptiveFeatures_fullDataset.gzip'
-        validation_target_file_name = ml_ready_data_file_name +r'TESTING_Clean_targetFeature_anomaly.csv'
-
-        model_params = params_3
+    # elif model_set == 2:
+    #
+    #     country_code = "CN"
+    #     country_name = "China"
+    #
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #
+    #     training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
+    #     training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_anomaly.csv'
+    #     validation_descriptive_file_name = ml_ready_data_file_name +r'TESTING_Mixed_descriptiveFeatures_fullDataset.gzip'
+    #     validation_target_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_anomaly.csv'
+    #
+    #     model_params = params_2
+    #
+    # elif model_set == 3:
+    #
+    #     country_code = "US"
+    #     country_name = "United States"
+    #
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #
+    #     training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
+    #     training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_anomaly.csv'
+    #     validation_descriptive_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
+    #     validation_target_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
+    #
+    #     model_params = params_3
+    #
+    # elif model_set == 4:
+    #
+    #     country_code = "CN"
+    #     country_name = "China"
+    #
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #
+    #     training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
+    #     training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
+    #
+    #     country_code = "US"
+    #     country_name = "United States"
+    #
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #
+    #     validation_descriptive_file_name = ml_ready_data_file_name +r'TESTING_Clean_descriptiveFeatures_fullDataset.gzip'
+    #     validation_target_file_name = ml_ready_data_file_name +r'TESTING_Clean_targetFeature_anomaly.csv'
+    #
+    #     model_params = params_3
 
     training_descriptive_df = pd.read_parquet(path=training_descriptive_file_name,
         engine='pyarrow').iloc[0:training_samples] # Only take the number of training samples specified
@@ -313,6 +344,8 @@ for model_set in model_set_list:
 
     validation_target_df = pd.read_csv(validation_target_file_name).iloc[0:validation_samples]
 
+    validation_record_table_df = pd.read_parquet(path=validation_record_table, engine='pyarrow').iloc[0:validation_samples]
+
     contamination = sum(np.squeeze(training_target_df.to_numpy()))/training_samples
 
     print("Percent contamination in T" +str(model_set)+": " +str(contamination))
@@ -323,12 +356,12 @@ for model_set in model_set_list:
 
     model_params['scale_pos_weight'] = (training_samples - sum(np.squeeze(training_target_df.to_numpy())))/sum(np.squeeze(training_target_df.to_numpy()))
 
-    training_set_df, validation_set_df, validation_truth_df, validation_comparison_df = \
-        remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df)
+    training_descriptive_df, validation_descriptive_df, validation_target_df, validation_comparison_df = \
+        remove_features(training_descriptive_df, validation_descriptive_df, validation_target_df, validation_target_df, features_to_remove)
 
     p = Process(target=run_ml_model,
                 args=(training_descriptive_df, training_target_df, validation_descriptive_df,
-                      validation_target_df,  model_params, save_folder, model_set))
+                      validation_target_df,  model_params, save_folder, model_set, validation_record_table_df, feature_set_filename))
     ps.append(p)
     p.start()
 

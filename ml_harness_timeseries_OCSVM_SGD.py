@@ -76,7 +76,7 @@ def get_local_statistics_df(test_df, prediction_list, truth_list, model, save_fi
 
     return df, auc
 
-def get_results(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model, model_params, save_folder, t_num, time_elapsed):
+def get_results(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model, model_params, save_folder, t_num, time_elapsed, validation_record_table_df, feature_set_filename):
 
     predicted_results_list = model.predict(validation_set_df.to_numpy())
     true_results_list = validation_truth_df.to_numpy()
@@ -86,6 +86,29 @@ def get_results(training_set_df, validation_set_df, validation_truth_df, validat
 
         # If the model comes from scikit-learn, we need to convert the feature indicator into 0 for inlier and 1 for outlier
         predicted_results_list = convert_target_features(predicted_results_list)
+
+        # Append predicted_results_list to records table (with features drop) and save
+
+    feature_set_df = pd.read_parquet(path=feature_set_filename, engine='pyarrow')
+
+    feature_set_df = feature_set_df.drop(features_to_remove, axis=1)
+
+    base_feature_list = feature_set_df.columns.tolist()  # used later to group features for feature importance
+    base_feature_list.remove('test_url')  # remove features not used for feature importance aggregator
+    base_feature_list.remove('vantage_point')
+    base_feature_list.remove('batch_datetime')
+
+    validation_record_table_df = validation_record_table_df.drop(['  IP'], axis=1)
+
+    joined_df = validation_record_table_df.merge(right=feature_set_df, how="left",
+                                                 on=['test_url', 'vantage_point', 'batch_datetime'])
+
+    joined_df['predicted_censored_boolean'] = predicted_results_list
+    joined_df['predicted_censored_value'] = model.decision_function(
+        validation_set_df.to_numpy())  # note - this changes with every model type
+    joined_df['predicted_censored_threshold'] = 0 # note - this changes with every model type
+
+    joined_df.to_csv(path_or_buf=(save_folder + r"data_with_predictions.csv"), index=False)
 
     values = model.coef_
 
@@ -97,14 +120,17 @@ def get_results(training_set_df, validation_set_df, validation_truth_df, validat
 
     sorted_features_list = sorted(importance_dict, key=importance_dict.__getitem__, reverse=True)
     sorted_num_list = sorted(importance_dict.values(), reverse=True)
-
+    sorted_num_list = np.array(sorted_num_list)/sum(sorted_num_list)  # normalize weights 0 to 1
     printout_dict = {"Features": sorted_features_list, "Importance": sorted_num_list}
 
     printout_df = pd.DataFrame.from_dict(printout_dict)
 
     printout_df.to_csv(path_or_buf=(save_folder + r"feature_importances.csv"), index=False)
 
-
+    aggregate_feature_importances_df = aggregate_feature_importances(base_feature_list, sorted_features_list,
+                                                                     sorted_num_list)
+    aggregate_feature_importances_df.to_csv(path_or_buf=(save_folder + r"aggregate_feature_importances.csv"),
+                                            index=False)
 
     # Create the column for time elapsed
 
@@ -145,7 +171,7 @@ def get_results(training_set_df, validation_set_df, validation_truth_df, validat
 
     return local_statistics_complete_df
 
-def run_ml_model(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model_params, save_folder, t_num):
+def run_ml_model(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly, comparison_anomaly, model_params, save_folder, t_num, validation_record_table_df, feature_set_filename):
 
     print("Begin training model T = " +str(t_num))
     begin_time = time.time()
@@ -159,7 +185,7 @@ def run_ml_model(training_set_df, validation_set_df, validation_truth_df, valida
     ("Begin validating results for T= " + str(t_num))
 
     results_df = get_results(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df, validation_anomaly,
-                             comparison_anomaly, clf, model_params, save_folder, t_num, time_elapsed)
+                             comparison_anomaly, clf, model_params, save_folder, t_num, time_elapsed, validation_record_table_df, feature_set_filename)
 
     results_df.to_csv(save_folder +r"local_stats.csv", index=False)
 
@@ -207,12 +233,13 @@ home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
 country_code = "CN"  # TODO change country code as required
 country_name = "China"  # TODO change country name as required
 
-version = "GFWatch_Timing_Experiments"
+version = "GFWatch_Timing_Experiments_new_V4"
 home_file_name = home_folder_name +"CP_Analysis/"
 version_filename = home_file_name +r"ML_Results/OCSVM_SGD/V" +str(version)+ "/"
 
-model_name = "OCSVM_SGD_skl"
+model_name = "OCSVM_SGD_skl_V4"
 sklearn_bool = True
+features_to_remove = [] # TODO list the (base) feature names that should not be included for training and inference
 os.mkdir(version_filename)
 
 print("Begin machine learning harness")
@@ -243,11 +270,11 @@ for train_month_count in [1, 2, 3, 4, 5, 6]:
 
                 og_train_month, og_train_year = month_to_month_year(training_month)
 
-                training_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" +str(og_train_month)+ "_" +str(og_train_year)+ "/TRAINING_Clean_descriptiveFeatures_fullDataset.gzip"
+                training_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/" +str(og_train_month)+ "_" +str(og_train_year)+ "/TRAINING_Clean_descriptiveFeatures_fullDataset.gzip"
                 partial_descriptive_df = pd.read_parquet(path=training_descriptive_file_name, engine='pyarrow')
                 training_descriptive_df_list.append(partial_descriptive_df)
 
-                training_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" + str(og_train_month) + "_" + str(og_train_year) + "/TRAINING_Clean_targetFeature_GFWatch_Censored.csv"
+                training_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/" + str(og_train_month) + "_" + str(og_train_year) + "/TRAINING_Clean_targetFeature_GFWatch_Censored.csv"
                 partial_target_df = pd.read_csv(training_target_file_name)
                 training_target_df_list.append(partial_target_df)
 
@@ -259,9 +286,14 @@ for train_month_count in [1, 2, 3, 4, 5, 6]:
 
             # Get target df
             og_test_month, og_test_year = month_to_month_year(test_month)
-            test_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_descriptiveFeatures_fullDataset.gzip"
-            test_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_GFWatch_Censored.csv"
-            test_comparison_file_name = home_file_name + country_code + "/ML_ready_dataframes_V3/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_anomaly.csv"
+            test_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_descriptiveFeatures_fullDataset.gzip"
+            test_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_GFWatch_Censored.csv"
+            test_comparison_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_anomaly.csv"
+            validation_record_table = home_file_name + country_code + "/ML_ready_dataframes_V4/" +str(og_test_month)+ "_" +str(og_test_year) + r'/TESTING_Mixed_record_summary_table.csv'
+
+            validation_record_table_df = pd.read_parquet(path=validation_record_table, engine='pyarrow')
+
+            feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
 
             test_descriptive_df = pd.read_parquet(path=test_descriptive_file_name, engine='pyarrow')
 
@@ -276,14 +308,14 @@ for train_month_count in [1, 2, 3, 4, 5, 6]:
 
             print("Percent contamination: " +str(contamination))
 
-            training_set_df, validation_set_df, validation_truth_df, validation_comparison_df = \
-                remove_features(training_set_df, validation_set_df, validation_truth_df, validation_comparison_df)
+            training_descriptive_df, test_descriptive_df, test_target_df, test_comparison_df = \
+                remove_features(training_descriptive_df, test_descriptive_df, test_target_df, test_comparison_df, features_to_remove)
 
             save_folder = version_filename + r"T" +str(t_name) + r"/"
 
             os.mkdir(save_folder)
 
-            run_ml_model(training_descriptive_df, test_descriptive_df, test_target_df, test_comparison_df, False, True, model_params, save_folder, t_name)
+            run_ml_model(training_descriptive_df, test_descriptive_df, test_target_df, test_comparison_df, False, True, model_params, save_folder, t_name, validation_record_table_df, feature_set_filename)
 
 # Create csv containing all pertinent information about the models, their parameters, and the results
 partial_df_list = []

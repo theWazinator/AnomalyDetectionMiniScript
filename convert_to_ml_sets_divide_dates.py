@@ -190,7 +190,7 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
                 # Create matching table with 'test_url', 'vantage_point', 'batch_datetime', all features from VantagePoint_CSV_List_V2.csv, GroundTruth Censored, CP Censored
 
-                record_table = subset_df[['test_url', 'vantage_point', 'batch_datetime']]
+                record_table = subset_df[['test_url', 'vantage_point', 'batch_datetime']].copy()
                 record_table['groundtruth_censored'] = groundtruth_censored_column.tolist()
                 record_table['cp_censored'] = cp_censored_column.tolist()
 
@@ -198,9 +198,8 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
 
                 record_table = record_table.merge(right=vantage_point_table, how='left', left_on='vantage_point', right_on="  IP")
 
-                record_table.to_csv(
-                    path_or_buf=date_folder_file_name + data_type + "_" + clean_moniker + "_record_summary_table.csv", \
-                    index=False)
+                record_table.to_parquet(index=True, compression="gzip", engine='pyarrow',
+                                      path=date_folder_file_name + data_type + "_" + clean_moniker + "_record_summary_table.csv")
 
 
     # Add "all_months_combined" code here that saves all the months into one table (just use df)
@@ -272,9 +271,8 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
             record_table['predicted_censored_value'] = pd.Series(np.full(shape=record_table.shape[0], dtype=np.float64(), fill_value=0))
             record_table['predicted_censored_threshold'] = pd.Series(np.full(shape=record_table.shape[0], dtype=np.float64(), fill_value=0))
 
-            record_table.to_csv(
-                path_or_buf=date_folder_file_name + data_type + "_" + clean_moniker + "_record_summary_table.csv", \
-                index=False)
+            record_table.to_parquet(index=True, compression="gzip", engine='pyarrow',
+                                    path=date_folder_file_name + data_type + "_" + clean_moniker + "_record_summary_table.csv")
 
     # Drop the columns
     df.drop(['anomaly'], axis=1)
@@ -380,7 +378,7 @@ training_split_fraction = 0.8
 validation_split_fraction = 0.1
 testing_split_fraction = 1 - training_split_fraction - validation_split_fraction
 
-intermediary_file_name = home_file_name +country_code+ "/ML_ready_dataframes_V3/"
+intermediary_file_name = home_file_name +country_code+ "/ML_ready_dataframes_V4/"
 aggregate_file_name = home_file_name +country_code+ "/raw_dataframe.gzip"
 
 os.mkdir(intermediary_file_name)
