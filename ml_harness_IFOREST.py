@@ -18,8 +18,8 @@ import shap
 home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
 training_samples = 250000 # TODO change training sample count as required
 
-model_name = "IFOREST_PyOD_new"
-version = 14
+model_name = "IFOREST_PyOD_new_V5"
+version = 16
 version_filename = home_folder_name+ r"CP_Analysis/ML_Results/IFOREST/V" +str(version)+ "/"
 sklearn_bool = False
 model_set_list = [1] # TODO include 2, 3, 4, in model sets
@@ -252,7 +252,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
@@ -260,7 +260,7 @@ for model_set in model_set_list:
         validation_truth_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_GFWatch_Censored.csv'
         comparison_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_anomaly.csv'
         validation_record_table = ml_ready_data_file_name +r'TESTING_Mixed_record_summary_table.csv'
-        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V5/full_dataset_with_human-readable_features.gzip"
 
         validation_anomaly = False
         comparison_anomaly = True
@@ -272,7 +272,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
@@ -281,7 +281,7 @@ for model_set in model_set_list:
         comparison_file_name = ml_ready_data_file_name + r'VALIDATION_Clean_targetFeature_anomaly.csv'
 
         validation_record_table = ml_ready_data_file_name +r'VALIDATION_Clean_record_summary_table.csv'
-        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V5/full_dataset_with_human-readable_features.gzip"
 
         validation_anomaly = False
         comparison_anomaly = True
@@ -293,7 +293,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
@@ -302,7 +302,7 @@ for model_set in model_set_list:
         comparison_file_name = ml_ready_data_file_name + r'VALIDATION_Mixed_targetFeature_GFWatch_Censored.csv'
 
         validation_record_table = ml_ready_data_file_name +r'VALIDATION_Mixed_record_summary_table.csv'
-        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V5/full_dataset_with_human-readable_features.gzip"
 
         validation_anomaly = True
         comparison_anomaly = False
@@ -314,7 +314,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
@@ -323,7 +323,7 @@ for model_set in model_set_list:
         comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_targetFeature_anomaly.csv'
 
         validation_record_table = ml_ready_data_file_name +r'VALIDATION_Mixed_record_summary_table.csv'
-        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V5/full_dataset_with_human-readable_features.gzip"
 
         validation_anomaly = False
         comparison_anomaly = True
@@ -335,7 +335,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         training_contam_file_name = ml_ready_data_file_name + r'TRAINING_Clean_targetFeature_GFWatch_Censored.csv'
@@ -344,7 +344,7 @@ for model_set in model_set_list:
         comparison_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_targetFeature_anomaly.csv'
 
         validation_record_table = ml_ready_data_file_name +r'VALIDATION_Clean_record_summary_table.csv'
-        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V5/full_dataset_with_human-readable_features.gzip"
 
         validation_anomaly = False
         comparison_anomaly = True

@@ -18,8 +18,8 @@ import shap
 home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
 training_samples = 500000 # TODO change training sample count as required
 
-model_name = "XGBOOST_new"
-version = 21
+model_name = "XGBOOST_new_V5"
+version = 23
 version_filename = home_folder_name+r"CP_Analysis/ML_Results/XGBOOST/V" +str(version)+ "/"
 sklearn_bool = False
 model_set_list = [1]
@@ -274,7 +274,7 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
 
         training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
         training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
@@ -282,7 +282,7 @@ for model_set in model_set_list:
         validation_target_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_GFWatch_Censored.csv'
 
         validation_record_table = ml_ready_data_file_name + r'TESTING_Mixed_record_summary_table.csv'
-        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V5/full_dataset_with_human-readable_features.gzip"
 
         model_params = params_1
 
@@ -291,7 +291,7 @@ for model_set in model_set_list:
     #     country_code = "CN"
     #     country_name = "China"
     #
-    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
     #
     #     training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
     #     training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_anomaly.csv'
@@ -305,7 +305,7 @@ for model_set in model_set_list:
     #     country_code = "US"
     #     country_name = "United States"
     #
-    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
     #
     #     training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
     #     training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_anomaly.csv'
@@ -319,7 +319,7 @@ for model_set in model_set_list:
     #     country_code = "CN"
     #     country_name = "China"
     #
-    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
     #
     #     training_descriptive_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip'
     #     training_target_file_name = ml_ready_data_file_name +r'TRAINING_Mixed_targetFeature_GFWatch_Censored.csv'
@@ -327,7 +327,7 @@ for model_set in model_set_list:
     #     country_code = "US"
     #     country_name = "United States"
     #
-    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
     #
     #     validation_descriptive_file_name = ml_ready_data_file_name +r'TESTING_Clean_descriptiveFeatures_fullDataset.gzip'
     #     validation_target_file_name = ml_ready_data_file_name +r'TESTING_Clean_targetFeature_anomaly.csv'

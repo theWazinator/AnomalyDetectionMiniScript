@@ -369,8 +369,8 @@ def create_ML_ready_data(df, AS_count_df, save_filename):
     return total_records_count, records_removed_count
 
 home_folder = r"/home/jambrown/"  # TODO change this name for your file structure
-country_name = "United States" # TODO change country code as required
-country_code = "US" # TODO update country code as required
+country_name = "China" # TODO change country code as required
+country_code = "CN" # TODO update country code as required
 
 home_file_name = home_folder +"CP_Analysis/"
 
@@ -378,7 +378,7 @@ training_split_fraction = 0.8
 validation_split_fraction = 0.1
 testing_split_fraction = 1 - training_split_fraction - validation_split_fraction
 
-intermediary_file_name = home_file_name +country_code+ "/ML_ready_dataframes_V4/"
+intermediary_file_name = home_file_name +country_code+ "/ML_ready_dataframes_V5/"
 aggregate_file_name = home_file_name +country_code+ "/raw_dataframe.gzip"
 
 os.mkdir(intermediary_file_name)

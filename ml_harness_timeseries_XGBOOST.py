@@ -217,7 +217,7 @@ home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
 country_code = "CN" # TODO change country code as required
 country_name = "China" # TODO change country name as required
 
-version = "Satellite_Timing_Experiments_new_V4"
+version = "Satellite_Timing_Experiments_new_V5"
 home_file_name = home_folder_name +"CP_Analysis/"
 version_filename = home_file_name + r"ML_Results/XGBOOST/V" +str(version)+ "/"
 
@@ -257,11 +257,11 @@ for train_month_count in [1, 2, 3, 4, 5, 6]:
 
                 og_train_month, og_train_year = month_to_month_year(training_month)
 
-                training_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/" +str(og_train_month)+ "_" +str(og_train_year)+ "/TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip"
+                training_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/" +str(og_train_month)+ "_" +str(og_train_year)+ "/TRAINING_Mixed_descriptiveFeatures_fullDataset.gzip"
                 partial_descriptive_df = pd.read_parquet(path=training_descriptive_file_name, engine='pyarrow')
                 training_descriptive_df_list.append(partial_descriptive_df)
 
-                training_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/" + str(og_train_month) + "_" + str(og_train_year) + "/TRAINING_Mixed_targetFeature_GFWatch_Censored.csv"
+                training_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/" + str(og_train_month) + "_" + str(og_train_year) + "/TRAINING_Mixed_targetFeature_GFWatch_Censored.csv"
                 partial_target_df = pd.read_csv(training_target_file_name)
                 training_target_df_list.append(partial_target_df)
 
@@ -270,12 +270,12 @@ for train_month_count in [1, 2, 3, 4, 5, 6]:
 
             # Get target df
             og_test_month, og_test_year = month_to_month_year(test_month)
-            test_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_descriptiveFeatures_fullDataset.gzip"
-            test_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_GFWatch_Censored.csv"
-            validation_record_table = home_file_name + country_code + "/ML_ready_dataframes_V4/" + str(
+            test_descriptive_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_descriptiveFeatures_fullDataset.gzip"
+            test_target_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/" +str(og_test_month)+ "_" +str(og_test_year)+ "/TESTING_Mixed_targetFeature_GFWatch_Censored.csv"
+            validation_record_table = home_file_name + country_code + "/ML_ready_dataframes_V5/" + str(
                 og_test_month) + "_" + str(og_test_year) + r'/TESTING_Mixed_record_summary_table.csv'
 
-            feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+            feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V5/full_dataset_with_human-readable_features.gzip"
 
             test_descriptive_df = pd.read_parquet(path=test_descriptive_file_name, engine='pyarrow')
 

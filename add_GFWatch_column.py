@@ -11,14 +11,18 @@ def process_time(time):
     converted_datetime = pd.to_datetime(arg=time, format='%Y-%m-%d %H:%M:%S')
 
     return converted_datetime
+
+
 def translate_to_regex(rule):
-    return_str = rule
-    if return_str[0]=="*":
-        return_str = ".*"+return_str[1:]
-        
-    if return_str[-1]=="*":
-        return_str = return_str[:-1]+".*"
+    return_str = "\.".join(rule.split("."))
+
+    if return_str[0] == "*":
+        return_str = ".*" + return_str[1:]
+
+    if return_str[-1] == "*":
+        return_str = return_str[:-1] + ".*"
     return return_str
+
 def match_rule(domain, rule):
     
     if re.match(rule,domain):
@@ -42,14 +46,14 @@ def check_range_time(start_time, range_times):
         status = (start_time.date() >= start.date()) and (start_time.date() <= end.date())
         if status:
             return 1
-    return 0
+    return 2
 
 def get_domainname(name):
     new_name = name.split("//")[-1]
 #     if new_name[:4]=="www.":
 #         new_name = new_name[4:]
-    if new_name[-1]=="/":
-        new_name = new_name[:-1]
+    if "/" in new_name:
+        new_name = new_name.split("/")[0]
     return new_name
 
 def process_dataframe(df, censored_domains, dic_censored, save_filename, process_num):
@@ -211,7 +215,11 @@ print("Valid number of probes: " +str(valid_df_length))
 
 complete_data_df = run_add_GFWatch_column(valid_df, GFWatch_table_filename, GFWatch_partial_dataframes_filename)
 
-complete_data_df.to_parquet(index=True, compression="gzip", engine='pyarrow', path=save_gfwatch_file_name)
+complete_data_minus_possible_df = complete_data_df.drop(complete_data_df.index[complete_data_df["GFWatch_Censored"] == 2])
+
+print("Total number of probes minus \"possible\" instances: " +str(complete_data_minus_possible_df.shape[0]))
+
+complete_data_minus_possible_df.to_parquet(index=True, compression="gzip", engine='pyarrow', path=save_gfwatch_file_name)
 
 print("Finished merging dataframes. End of Program.")
 

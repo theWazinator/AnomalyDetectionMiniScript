@@ -18,8 +18,8 @@ import shap
 home_folder_name = r"/home/jambrown/" # TODO change this to your home folder
 training_samples = 150000 # TODO change training sample count as required
 
-model_name = "OCSVM_SGD_skl_V4"
-version = 15
+model_name = "OCSVM_SGD_skl_new_V5"
+version = 18
 version_filename = home_folder_name + r"CP_Analysis/ML_Results/OCSVM_SGD/V" +str(version)+ "/"
 sklearn_bool = True
 features_to_remove = [] # TODO list the (base) feature names that should not be included for training and inference
@@ -271,14 +271,14 @@ for model_set in model_set_list:
         country_code = "CN"
         country_name = "China"
 
-        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+        ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
 
         training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
         validation_set_file_name = ml_ready_data_file_name +r'TESTING_Mixed_descriptiveFeatures_fullDataset.gzip'
         validation_truth_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_GFWatch_Censored.csv'
         comparison_file_name = ml_ready_data_file_name +r'TESTING_Mixed_targetFeature_anomaly.csv'
         validation_record_table = ml_ready_data_file_name +r'TESTING_Mixed_record_summary_table.csv'
-        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V4/full_dataset_with_human-readable_features.gzip"
+        feature_set_filename = home_file_name + country_code + "/ML_ready_dataframes_V5/full_dataset_with_human-readable_features.gzip"
 
         validation_anomaly = False
         comparison_anomaly = True
@@ -290,7 +290,7 @@ for model_set in model_set_list:
     #     country_code = "CN"
     #     country_name = "China"
     #
-    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
     #
     #     training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
     #     validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Mixed_descriptiveFeatures_fullDataset.gzip'
@@ -306,7 +306,7 @@ for model_set in model_set_list:
     #     country_code = "US"
     #     country_name = "United States"
     #
-    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
     #
     #     training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
     #     validation_set_file_name = ml_ready_data_file_name +r'VALIDATION_Clean_descriptiveFeatures_fullDataset.gzip'
@@ -323,7 +323,7 @@ for model_set in model_set_list:
     #     country_code = "US"
     #     country_name = "United States"
     #
-    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V4/all_months_combined/"
+    #     ml_ready_data_file_name = home_file_name + country_code + "/ML_ready_dataframes_V5/all_months_combined/"
     #
     #     training_set_file_name = ml_ready_data_file_name +r'TRAINING_Clean_descriptiveFeatures_fullDataset.gzip'
     #     validation_set_file_name = ml_ready_data_file_name +r'TESTING_Mixed_descriptiveFeatures_fullDataset.gzip'
