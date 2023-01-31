@@ -19,7 +19,7 @@ re-run with different countries (including the US and China) in order to execute
 programs 10 through 13.
 
 Because of the significant length and memory use of these programs, we recommend using a
-20+ CPU machine with approximately 40 GB of RAM. No GPUs are required.
+20+ CPU machine with approximately 40 GB of RAM.
 
 ## Code Description
 
